@@ -1,0 +1,12 @@
+===== Sport Enrollment Statistics =====
+Sport          | Time              | Enrolled/Capacity
+---------------|-------------------|-----------------
+Football       | Mon 10:00-12:00  | 1/20
+Basketball     | Tue 14:00-16:00  | 1/15
+Tennis         | Wed 09:00-11:00  | 1/10
+Swimming       | Thu 13:00-15:00  | 0/12
+Volleyball     | Fri 15:00-17:00  | 1/15
+Badminton      | Mon 14:00-16:00  | 0/10
+Athletics      | Tue 10:00-12:00  | 0/20
+Cycling        | Wed 13:00-15:00  | 0/10
+======================================
