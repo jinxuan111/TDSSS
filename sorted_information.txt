@@ -1,4 +1,4 @@
-SPORTS_ALLOTMENT_DATA
+========== SPORTS ALLOTMENT SYSTEM DATA ==========
 ID    | Name             | Sport         | Time
 ------|------------------|---------------|------------------
    25 | s                | None          | None
