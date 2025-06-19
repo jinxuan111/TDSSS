@@ -1,0 +1,12 @@
+========== SPORTS PARTICIPATION SUMMARY ==========
+Sport         | Participants | Capacity
+--------------|--------------|---------|
+Football      | 1            | 20
+Basketball    | 0            | 15
+Tennis        | 0            | 10
+Swimming      | 0            | 12
+Volleyball    | 0            | 15
+Badminton     | 0            | 10
+Athletics     | 0            | 20
+Cycling       | 0            | 10
+==================================================

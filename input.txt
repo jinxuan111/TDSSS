@@ -7,6 +7,4 @@ ID    | Name             | Sport         | Time
    88 | a                | None          | None
   123 | Andrew           | Football      | Mon 10:00-12:00
   123 | Andrew           | Tennis        | Wed 09:00-11:00
-  345 | abc              | None          | None
-  888 | abc              | None          | None
 ==================================================
