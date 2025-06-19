@@ -1,14 +1,14 @@
 ========== USER DATA ==========
 ID    | Username | Password | Type
 ------|----------|----------|-------
-0     | Username | Password | Type
 1     | admin    | admin123 | Admin
 2     | customer | cust123  | Customer
-55    | HAHA     | abc123   | Admin
-123   | abc123   | abc123   | Admin
-456   | BB       | abc123   | Admin
-678   | NN       | abc123   | Customer
-789   | gg       | abc123   | Customer
-888   | abc      | abc123   | Customer
-345   | abc      | abc123   | Customer
+25    | s        | default123 | Customer
+43    | C        | default123 | Customer
+66    | a        | default123 | Customer
+88    | a        | default123 | Customer
+123   | Andrew   | default123 | Customer
+0     | Username | Password | Type
+222   | a        | abc123   | Admin
+444   | b        | abc123   | Customer
 ===============================

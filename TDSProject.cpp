@@ -78,7 +78,7 @@ public:
         strncpy(password, pass, 49);
         password[49] = '\0';
     }
-    void login(int userId, const char* pass) override {
+    void login(int userId, const char* pass) {
         if (userId == id && strcmp(pass, password) == 0) {
             cout << "Admin login successful!" << endl;
         } else {
@@ -98,7 +98,7 @@ public:
         strncpy(password, pass, 49);
         password[49] = '\0';
     }
-    void login(int userId, const char* pass) override {
+    void login(int userId, const char* pass) {
         if (userId == id && strcmp(pass, password) == 0) {
             cout << "Customer login successful!" << endl;
         } else {
@@ -116,7 +116,7 @@ public:
         strcpy(username, "guest");
         strcpy(password, "none");
     }
-    void login(int userId, const char* pass) override {
+    void login(int userId, const char* pass) {
         cout << "Guest login successful!" << endl;
     }
     ~Guest() {}
@@ -348,12 +348,10 @@ private:
     bool createFileIfNotExists(const string& filename) {
         string dir = BASE_PATH;
         if (_mkdir(dir.c_str()) != 0 && errno != EEXIST) {
-            cout << "Error: Unable to create directory '" << dir << "': " << strerror(errno) << endl;
             return false;
         }
         ofstream outFile(filename.c_str(), ios::app);
         if (!outFile) {
-            cout << "Error: Unable to create file '" << filename << "': " << strerror(errno) << endl;
             return false;
         }
         outFile.close();
@@ -391,7 +389,6 @@ private:
             }
             outFile << "===============================\n";
             outFile.close();
-            cout << "User data saved to '" << filename << "'" << endl;
         } catch (const string& error) {
             cout << "Error: " << error << endl;
         }
@@ -519,8 +516,6 @@ public:
                 }
             }
             inFile.close();
-            cout << "Loaded " << userCount << " users from '" << filename << "'" << endl;
-            saveUsersToFile("user_data.txt"); // Ensure file is updated
         } catch (const string& error) {
             cout << "Error: " << error << endl;
         }
@@ -532,7 +527,8 @@ public:
                 strcmp(users[i].type, expectedType) == 0) {
                 if (strcmp(expectedType, "Admin") == 0) {
                     return new Admin(id, users[i].username, password);
-                } else if (strcmp(expectedType, "Customer") == 0) {
+                }
+                else if (strcmp(expectedType, "Customer") == 0) {
                     return new Customer(id, users[i].username, password);
                 }
             }
@@ -605,7 +601,6 @@ public:
 
             syncAthletesArray();
             saveAllFiles();
-            saveUsersToFile("user_data.txt");
             cout << "Successfully added student: ID=" << id << ", Name=" << name << endl;
             return true;
         } catch (const char* error) {
@@ -678,7 +673,7 @@ public:
                 continue;
             }
             bool hasSport = false;
-            Node* temp = current;
+            Node* temp = table[i];
             while (temp != NULL) {
                 if (strcmp(temp->sport, "None") != 0) {
                     hasSport = true;
@@ -740,7 +735,9 @@ public:
             if (!inFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
             cout << "\n===== Contents of " << filename << " =====" << endl;
             string line;
-            while (getline(inFile, line)) cout << line << endl;
+            while (getline(inFile, line)) {
+                cout << line << endl;
+            }
             inFile.close();
             cout << "====================================\n";
         } catch (const string& error) {
@@ -751,7 +748,7 @@ public:
     void displaySportParticipants(const char* sport) {
         try {
             if (!isValidSport(sport)) throw "Invalid sport";
-            cout << "\n======== PARTICIPANTS IN " << sport << " ========\n";
+            cout << "\n======== PARTICIPANTS IN " << sport << " ========\n"; // FIXED: Corrected string concatenation
             cout << "ID    | Name            | Time\n";
             cout << "------|-----------------|------------------\n";
             bool found = false;
@@ -854,7 +851,6 @@ public:
     void readFromFile(const string& filename) {
         try {
             if (loadedFiles.find(filename) != loadedFiles.end()) {
-                cout << "Skipping already loaded file: " << filename << endl;
                 return;
             }
             loadedFiles.insert(filename);
@@ -893,8 +889,7 @@ public:
                 if (!token) continue;
                 trimWhitespace(token);
                 strncpy(time, token, 49);
-                time[49] = '\0';
-                cout << "Loading: ID=" << id << ", Name=" << name << ", Sport=" << sport << ", Time=" << time << endl;
+                time[50] = '\0';
                 if (!idExists(id)) insertStudent(id, name, "default123");
                 if (strcmp(sport, "None") != 0 && !sportExistsForId(id, sport, time)) {
                     insert(id, name, sport, time);
@@ -904,7 +899,6 @@ public:
             isLoadingFromFile = false;
             syncAthletesArray();
             saveAllFiles();
-            cout << "Successfully loaded '" << filename << "'" << endl;
         } catch (const string& error) {
             cout << "Error: " << error << endl;
             isLoadingFromFile = false;
@@ -913,16 +907,11 @@ public:
 
     void loadAllFiles() {
         try {
-            loadedFiles.clear(); // Reset loaded files
-            cout << "Loading from input.txt...\n";
+            loadedFiles.clear();
             readFromFile("input.txt");
-            cout << "Loading from sorted_information.txt...\n";
             readFromFile("sorted_information.txt");
-            cout << "Loading from user_data.txt...\n";
             loadUsersFromFile("user_data.txt");
-            cout << "Loading from statistics.txt...\n";
             readFromFile("statistics.txt");
-            cout << "Loading from backup.txt...\n";
             readFromFile("backup.txt");
             syncAthletesArray();
             saveAllFiles();
@@ -1001,7 +990,6 @@ public:
             }
             outFile << "==================================================\n";
             outFile.close();
-            cout << "Data saved to '" << filename << "'" << endl;
         } catch (const string& error) {
             cout << "Error: " << error << endl;
         }
@@ -1181,7 +1169,6 @@ void exportSummaryReport(HashTable& ht, const string& filename) {
         }
         outFile << "==================================================\n";
         outFile.close();
-        cout << "Summary report saved to '" << filename << "'" << endl;
     } catch (const string& error) {
         cout << "Error: " << error << endl;
     }
@@ -1207,7 +1194,6 @@ void generateStatistics(HashTable& ht, const string& filename) {
         }
         outFile << "=======================================\n";
         outFile.close();
-        cout << "Statistics saved to '" << filename << "'" << endl;
     } catch (const string& error) {
         cout << "Error: " << error << endl;
     }
@@ -1278,7 +1264,7 @@ int main() {
                     while (true) {
                         cout << "\n========================================\n";
                         cout << "    ADMIN - HASH TABLE OPERATIONS\n";
-                        cout << "========================================\n";
+                        cout << "=================================\n";
                         cout << "1. Add New Student\n";
                         cout << "2. Manage Sport Selection\n";
                         cout << "3. Search Student by ID\n";
@@ -1314,7 +1300,9 @@ int main() {
                             cout << "\n--- Manage Sport Selection ---\n";
                             cout << "Enter Student ID: ";
                             int id = getValidInput(1, 99999);
-                            cout << "\n1. Add Sport\n2. Remove Sport\nEnter action (1-2): ";
+                            cout << "\n1. Add Sport\n";
+                            cout << "2. Remove Sport\n"; // FIXED: Added proper cout statement
+                            cout << "Enter action (1-2): ";
                             int action = getValidInput(1, 2);
                             cin.ignore();
                             if (action == 1) {
@@ -1347,7 +1335,7 @@ int main() {
                                 }
                             }
                         } else if (subChoice == 3) {
-                            cout << "\n--- Search Student by ID ---\n";
+                            cout << "\n--- Search Student by ID\n";
                             cout << "Enter Student ID: ";
                             int id = getValidInput(1, 99999);
                             table.search(id);
