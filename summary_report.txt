@@ -2,9 +2,9 @@
 Sport         | Participants | Capacity
 --------------|--------------|---------|
 Football      | 1            | 20
-Basketball    | 1            | 15
+Basketball    | 0            | 15
 Tennis        | 1            | 10
-Swimming      | 1            | 12
+Swimming      | 0            | 12
 Volleyball    | 1            | 15
 Badminton     | 0            | 10
 Athletics     | 0            | 20
