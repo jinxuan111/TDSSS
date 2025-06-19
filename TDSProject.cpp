@@ -6,7 +6,8 @@
 #include <iomanip>
 #include <errno.h>
 #include <string>
-#include <direct.h> // For _mkdir
+#include <direct.h>
+#include <set>
 using namespace std;
 
 // Forward declaration
@@ -121,7 +122,7 @@ public:
     ~Guest() {}
 };
 
-// *** Hash Table Algorithm: Main Data Structure ***
+// Hash Table class
 class HashTable {
 private:
     Node* table[TABLE_SIZE];
@@ -131,8 +132,8 @@ private:
     int athleteCount;
     UserInfo users[MAX_USERS];
     int userCount;
+    static set<string> loadedFiles; // Track loaded files
 
-    // *** Hash Table Algorithm: Hash Function ***
     int hashFunction(int key) {
         return key % TABLE_SIZE;
     }
@@ -238,7 +239,6 @@ private:
         if (start != str) memmove(str, start, strlen(start) + 1);
     }
 
-    // *** Merge Sort Algorithm: Insertion Sort for small arrays ***
     void insertionSort(Athlete arr[], int left, int right) {
         for (int i = left + 1; i <= right; i++) {
             Athlete temp = arr[i];
@@ -251,7 +251,6 @@ private:
         }
     }
 
-    // *** Merge Sort Algorithm: Merge function ***
     void merge(Athlete arr[], int left, int mid, int right) {
         int len1 = mid - left + 1;
         int len2 = right - mid;
@@ -273,7 +272,6 @@ private:
         delete[] rightArr;
     }
 
-    // *** Merge Sort Algorithm: Main function ***
     void mergeSort(Athlete arr[], int left, int right) {
         if (right - left <= 32) {
             insertionSort(arr, left, right);
@@ -285,7 +283,6 @@ private:
         merge(arr, left, mid, right);
     }
 
-    // *** Binary Search Algorithm ***
     int binarySearch(int targetId) {
         if (athleteCount == 0) return -1;
         int left = 0, right = athleteCount - 1;
@@ -300,20 +297,30 @@ private:
 
     void syncAthletesArray() {
         athleteCount = 0;
+        for (int i = 0; i < SPORT_COUNT; i++) {
+            sports[i].current_count = 0; // Reset sport counts
+        }
         for (int i = 0; i < TABLE_SIZE; i++) {
             Node* current = table[i];
             while (current != NULL && athleteCount < MAX_ENTRIES) {
+                athletes[athleteCount].id = current->id;
+                strcpy(athletes[athleteCount].name, current->name);
+                strcpy(athletes[athleteCount].sport, current->sport);
+                strcpy(athletes[athleteCount].time, current->time);
                 if (strcmp(current->sport, "None") != 0) {
-                    athletes[athleteCount].id = current->id;
-                    strcpy(athletes[athleteCount].name, current->name);
-                    strcpy(athletes[athleteCount].sport, current->sport);
-                    strcpy(athletes[athleteCount].time, current->time);
+                    for (int j = 0; j < SPORT_COUNT; j++) {
+                        if (strcmp(current->sport, sports[j].name) == 0) {
+                            sports[j].current_count++;
+                            break;
+                        }
+                    }
+                    athleteCount++;
+                } else {
                     athleteCount++;
                 }
                 current = current->next;
             }
         }
-        // *** Merge Sort Algorithm: Sort athletes array ***
         if (athleteCount > 1) mergeSort(athletes, 0, athleteCount - 1);
     }
 
@@ -339,13 +346,11 @@ private:
     }
 
     bool createFileIfNotExists(const string& filename) {
-        // Create directory if it doesn't exist
         string dir = BASE_PATH;
         if (_mkdir(dir.c_str()) != 0 && errno != EEXIST) {
             cout << "Error: Unable to create directory '" << dir << "': " << strerror(errno) << endl;
             return false;
         }
-        // Check if file exists or create it
         ofstream outFile(filename.c_str(), ios::app);
         if (!outFile) {
             cout << "Error: Unable to create file '" << filename << "': " << strerror(errno) << endl;
@@ -392,7 +397,6 @@ private:
         }
     }
 
-    // Friend functions
     friend void exportSummaryReport(HashTable& ht, const string& filename);
     friend void importData(HashTable& ht, const string& filename);
     friend void generateStatistics(HashTable& ht, const string& filename);
@@ -414,6 +418,10 @@ public:
         strcpy(users[1].password, "cust123");
         strcpy(users[1].type, "Customer");
         userCount = 2;
+        string fullPath = BASE_PATH + "user_data.txt";
+        if (createFileIfNotExists(fullPath)) {
+            saveUsersToFile("user_data.txt");
+        }
     }
 
     int getSportCount() const { return SPORT_COUNT; }
@@ -474,7 +482,6 @@ public:
             if (!inFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
             char line[256];
             bool firstLine = true;
-            userCount = 0; // Reset user count to avoid duplicates
             while (inFile.getline(line, 256)) {
                 if (firstLine || strstr(line, "==========") || strstr(line, "------|") || line[0] == '\0') {
                     firstLine = false;
@@ -513,6 +520,7 @@ public:
             }
             inFile.close();
             cout << "Loaded " << userCount << " users from '" << filename << "'" << endl;
+            saveUsersToFile("user_data.txt"); // Ensure file is updated
         } catch (const string& error) {
             cout << "Error: " << error << endl;
         }
@@ -532,7 +540,6 @@ public:
         return NULL;
     }
 
-    // *** Hash Table Algorithm: Insertion ***
     bool insert(int id, const char* name, const char* sport, const char* time) {
         try {
             if (!isValidID(id)) throw "Invalid ID";
@@ -568,7 +575,6 @@ public:
         }
     }
 
-    // *** Hash Table Algorithm: Insertion ***
     bool insertStudent(int id, const char* name, const char* password) {
         try {
             if (!isValidID(id)) throw "Invalid ID";
@@ -588,7 +594,6 @@ public:
             newNode->next = table[index];
             table[index] = newNode;
 
-            // Add to user list as Customer
             if (userCount >= MAX_USERS) throw "Maximum user limit reached";
             users[userCount].id = id;
             strncpy(users[userCount].username, name, 49);
@@ -598,6 +603,7 @@ public:
             strcpy(users[userCount].type, "Customer");
             userCount++;
 
+            syncAthletesArray();
             saveAllFiles();
             saveUsersToFile("user_data.txt");
             cout << "Successfully added student: ID=" << id << ", Name=" << name << endl;
@@ -608,7 +614,6 @@ public:
         }
     }
 
-    // *** Hash Table Algorithm: Search ***
     void search(int id) {
         try {
             if (!isValidID(id)) throw "Invalid ID";
@@ -649,7 +654,6 @@ public:
         try {
             if (!isValidID(id)) throw "Invalid ID";
             syncAthletesArray();
-            // *** Binary Search Algorithm ***
             int index = binarySearch(id);
             if (index == -1) {
                 cout << "ID " << id << " not found!" << endl;
@@ -849,6 +853,11 @@ public:
 
     void readFromFile(const string& filename) {
         try {
+            if (loadedFiles.find(filename) != loadedFiles.end()) {
+                cout << "Skipping already loaded file: " << filename << endl;
+                return;
+            }
+            loadedFiles.insert(filename);
             isLoadingFromFile = true;
             string fullPath = BASE_PATH + filename;
             if (!createFileIfNotExists(fullPath)) {
@@ -885,6 +894,7 @@ public:
                 trimWhitespace(token);
                 strncpy(time, token, 49);
                 time[49] = '\0';
+                cout << "Loading: ID=" << id << ", Name=" << name << ", Sport=" << sport << ", Time=" << time << endl;
                 if (!idExists(id)) insertStudent(id, name, "default123");
                 if (strcmp(sport, "None") != 0 && !sportExistsForId(id, sport, time)) {
                     insert(id, name, sport, time);
@@ -892,6 +902,8 @@ public:
             }
             inFile.close();
             isLoadingFromFile = false;
+            syncAthletesArray();
+            saveAllFiles();
             cout << "Successfully loaded '" << filename << "'" << endl;
         } catch (const string& error) {
             cout << "Error: " << error << endl;
@@ -901,6 +913,7 @@ public:
 
     void loadAllFiles() {
         try {
+            loadedFiles.clear(); // Reset loaded files
             cout << "Loading from input.txt...\n";
             readFromFile("input.txt");
             cout << "Loading from sorted_information.txt...\n";
@@ -911,6 +924,8 @@ public:
             readFromFile("statistics.txt");
             cout << "Loading from backup.txt...\n";
             readFromFile("backup.txt");
+            syncAthletesArray();
+            saveAllFiles();
         } catch (const string& error) {
             cout << "Error: " << error << endl;
         }
@@ -993,14 +1008,15 @@ public:
     }
 
     void saveAllFiles() {
+        syncAthletesArray();
         saveToFile("input.txt");
         saveToFile("sorted_information.txt");
         saveToFile("backup.txt");
         generateStatistics(*this, "statistics.txt");
         exportSummaryReport(*this, "summary_report.txt");
+        saveUsersToFile("user_data.txt");
     }
 
-    // *** Hash Table Algorithm: Deletion ***
     void removeSport(int id, const char* sport) {
         try {
             if (!isValidID(id)) throw "Invalid ID";
@@ -1144,6 +1160,8 @@ public:
         }
     }
 };
+
+set<string> HashTable::loadedFiles;
 
 void exportSummaryReport(HashTable& ht, const string& filename) {
     try {
