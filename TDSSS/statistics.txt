@@ -1,7 +1,7 @@
 ========== SPORTS STATISTICS ==========
-Total Athletes: 1
+Total Athletes: 2
 Sport Distribution:
-Football: 0 participants
+Football: 1 participants
 Basketball: 0 participants
 Tennis: 0 participants
 Swimming: 0 participants

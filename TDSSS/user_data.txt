@@ -3,8 +3,6 @@ ID    | Username | Password | Type
 ------|----------|----------|-------
 1     | admin    | admin123 | Admin
 2     | customer | cust123  | Customer
+789   | jinxuan  | default123 | Customer
 0     | Username | Password | Type
-123   | a        | abc123   | Customer
-222   | b        | abc123   | Admin
-333   | c        | abc123   | Customer
-==============================
+===============================
