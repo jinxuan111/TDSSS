@@ -1,11 +1,8 @@
 ========== SPORTS ALLOTMENT SYSTEM DATA ==========
 ID    | Name            | Sport         | Time
 ------|-----------------|---------------|-----------------
-  123 | abc123          | Athletics     | Tue 10:00-12:00
-  123 | abc123          | Tennis        | Wed 09:00-11:00
   123 | abc123          | Basketball    | Tue 14:00-16:00
   323 | abc             | Football      | Mon 10:00-12:00
-  456 | runner          | None          | None
+  456 | runner          | Running       | Mon 06:00-08:00
   789 | player          | Football      | Mon 10:00-12:00
-22222 | 22222           | None          | None
 ==================================================

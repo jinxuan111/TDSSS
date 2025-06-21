@@ -3,13 +3,12 @@ ID    | Username | Password | Type
 ------|----------|----------|-------
 1     | admin    | admin123 | Admin
 2     | customer | cust123  | Customer
-123   | abc123   | abc123   | Customer
+123   | abc123   | pass123  | Customer
 323   | abc      | pass323  | Customer
 123   | abc123   | pass123  | Customer
 323   | abc      | pass323  | Customer
 456   | runner   | pass456  | Customer
 789   | player   | pass789  | Customer
 0     | Username | Password | Type
-222   | v        | abc123   | Admin
-22222 | 22222    | 22222    | Customer
+555   | gg       | abc123   | Admin
 ===============================

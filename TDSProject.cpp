@@ -486,7 +486,6 @@ public:
             sports[sportCount].current_count = 0;
             sportCount++;
             saveAllFiles();
-            cout << "Successfully added sport: " << name << endl;
             return true;
         } catch (const char* error) {
             cout << "Error: " << error << endl;
@@ -505,7 +504,6 @@ public:
                     }
                     sportCount--;
                     saveAllFiles();
-                    cout << "Successfully deleted sport: " << name << endl;
                     return true;
                 }
             }
@@ -550,7 +548,7 @@ public:
             strcpy(users[userCount].type, type);
             userCount++;
             saveUsersToFile("user_data.txt");
-            cout << "User ID " << id << " ('" << username << "') registered successfully as " << type << "!" << endl;
+            cout << "User registered successfully!" << endl;
         } catch (const char* error) {
             cout << "Error: " << error << endl;
         }
@@ -648,8 +646,6 @@ public:
 
             syncAthletesArray();
             saveAllFiles();
-            cout << "Successfully inserted: ID=" << id << ", Name=" << newNode->name
-                 << ", Sport=" << sport << ", Time=" << time << endl;
             return true;
         } catch (const char* error) {
             cout << "Error: " << error << endl;
@@ -687,7 +683,64 @@ public:
 
             syncAthletesArray();
             saveAllFiles();
-            cout << "Successfully added student: ID=" << id << ", Name=" << name << endl;
+            return true;
+        } catch (const char* error) {
+            cout << "Error: " << error << endl;
+            return false;
+        }
+    }
+
+    bool deleteStudent(int id) {
+        try {
+            if (!isValidID(id)) throw "Invalid ID";
+            if (!idExists(id)) throw "ID not found";
+
+            // First remove all sport selections for this student
+            int index = hashFunction(id);
+            Node* current = table[index];
+            Node* prev = NULL;
+            while (current != NULL) {
+                if (current->id == id && strcmp(current->sport, "None") != 0) {
+                    reduceCapacity(current->sport);
+                    if (prev == NULL) table[index] = current->next;
+                    else prev->next = current->next;
+                    Node* temp = current;
+                    current = current->next;
+                    delete temp;
+                    continue;
+                }
+                prev = current;
+                current = current->next;
+            }
+
+            // Now remove the student record
+            index = hashFunction(id);
+            current = table[index];
+            prev = NULL;
+            while (current != NULL) {
+                if (current->id == id) {
+                    if (prev == NULL) table[index] = current->next;
+                    else prev->next = current->next;
+                    delete current;
+                    break;
+                }
+                prev = current;
+                current = current->next;
+            }
+
+            // Remove from users array
+            for (int i = 0; i < userCount; i++) {
+                if (users[i].id == id) {
+                    for (int j = i; j < userCount - 1; j++) {
+                        users[j] = users[j + 1];
+                    }
+                    userCount--;
+                    break;
+                }
+            }
+
+            syncAthletesArray();
+            saveAllFiles();
             return true;
         } catch (const char* error) {
             cout << "Error: " << error << endl;
@@ -953,7 +1006,7 @@ public:
                 if (firstLine || strstr(line, "==========") || strstr(line, "------|") || line[0] == '\0') {
                     firstLine = false;
                     continue;
-                    }
+                }
                 int id;
                 char name[50], sport[50], time[50];
                 char* token = strtok(line, "|");
@@ -1105,8 +1158,6 @@ public:
                     else prev->next = current->next;
                     syncAthletesArray();
                     saveAllFiles();
-                    cout << "Successfully removed: ID=" << id << ", Name=" << current->name
-                         << ", Sport=" << sport << endl;
                     delete current;
                     return;
                 }
@@ -1135,7 +1186,6 @@ public:
             }
             syncAthletesArray();
             saveAllFiles();
-            cout << "Successfully updated name for ID=" << id << " to " << newName << endl;
         } catch (const char* error) {
             cout << "Error: " << error << endl;
         }
@@ -1182,7 +1232,6 @@ public:
 
             syncAthletesArray();
             saveAllFiles();
-            cout << "Successfully updated ID from " << oldId << " to " << newId << endl;
         } catch (const char* error) {
             cout << "Error: " << error << endl;
         }
@@ -1202,7 +1251,6 @@ public:
                 users[userIndex].password[49] = '\0';
             }
             saveUsersToFile("user_data.txt");
-            cout << "Successfully updated user record for ID=" << id << endl;
         } catch (const char* error) {
             cout << "Error: " << error << endl;
         }
@@ -1217,7 +1265,6 @@ public:
             if (idExistsUser(newId)) throw "New user ID already exists";
             users[userIndex].id = newId;
             saveUsersToFile("user_data.txt");
-            cout << "Successfully updated user ID from " << oldId << " to " << newId << endl;
         } catch (const char* error) {
             cout << "Error: " << error << endl;
         }
@@ -1257,7 +1304,6 @@ public:
             }
             outFile << "==========================================\n";
             outFile.close();
-            cout << "Detailed report generated: " << filename << endl;
         } catch (const string& error) {
             cout << "Error: " << error << endl;
         }
@@ -1358,7 +1404,6 @@ int main() {
     HashTable table;
     Guest guest;
     table.loadAllFiles();
-    cout << "Successfully loaded input.txt\n";
 
     while (true) {
         cout << "\n========================================\n";
@@ -1393,7 +1438,7 @@ int main() {
                         cout << "\n========================================\n";
                         cout << "    ADMIN - HASH TABLE OPERATIONS\n";
                         cout << "========================================\n";
-                        cout << "1. Add New Student\n";
+                        cout << "1. Manage Student\n";
                         cout << "2. Manage Sports\n";
                         cout << "3. Manage Sport Selection\n";
                         cout << "4. Search Student by ID\n";
@@ -1415,24 +1460,34 @@ int main() {
                         if (subChoice == 0) break;
 
                         if (subChoice == 1) {
-                            cout << "\n--- Add New Student ---\n";
-                            cout << "Enter Student ID: ";
-                            int id = getValidInput(1, 99999);
+                            cout << "\n--- Manage Student ---\n";
+                            cout << "0. Exit\n1. Add New Student\n2. Delete Student\nEnter action (0-2): ";
+                            int action = getValidInput(0, 2);
                             cin.ignore();
-                            cout << "Enter Student Name: ";
-                            char name[50];
-                            cin.getline(name, 50);
-                            cout << "Enter Student Password: ";
-                            char password[50];
-                            cin.getline(password, 50);
-                            table.insertStudent(id, name, password);
+                            if (action == 0) continue;
+                            if (action == 1) {
+                                cout << "Enter Student ID: ";
+                                int id = getValidInput(1, 99999);
+                                cin.ignore();
+                                cout << "Enter Student Name: ";
+                                char name[50];
+                                cin.getline(name, 50);
+                                cout << "Enter Student Password: ";
+                                char password[50];
+                                cin.getline(password, 50);
+                                table.insertStudent(id, name, password);
+                            } else {
+                                cout << "Enter Student ID to delete: ";
+                                int id = getValidInput(1, 99999);
+                                cin.ignore();
+                                table.deleteStudent(id);
+                            }
                         } else if (subChoice == 2) {
                             cout << "\n--- Manage Sports ---\n";
-                            cout << "1. Add New Sport\n";
-                            cout << "2. Delete Sport\n";
-                            cout << "Enter action (1-2): ";
-                            int sportAction = getValidInput(1, 2);
+                            cout << "0. Exit\n1. Add New Sport\n2. Delete Sport\nEnter action (0-2): ";
+                            int sportAction = getValidInput(0, 2);
                             cin.ignore();
+                            if (sportAction == 0) continue;
                             if (sportAction == 1) {
                                 cout << "Enter Sport Name: ";
                                 char name[50];
@@ -1460,21 +1515,16 @@ int main() {
                             cout << "\n--- Manage Sport Selection ---\n";
                             cout << "Enter Student ID: ";
                             int id = getValidInput(1, 99999);
-                            cout << "\n1. Add Sport\n";
-                            cout << "2. Remove Sport\n";
-                            cout << "Enter action (1-2): ";
-                            int action = getValidInput(1, 2);
+                            cout << "\n0. Exit\n1. Add Sport\n2. Remove Sport\nEnter action (0-2): ";
+                            int action = getValidInput(0, 2);
                             cin.ignore();
+                            if (action == 0) continue;
                             if (action == 1) {
                                 cout << "\n--- Available Sports ---\n";
                                 table.displaySports();
-                                cout << "\nEnter sport number (0 to exit, 1-" << table.getSportCount() << "): ";
-                                int sportIndex = getValidInput(0, table.getSportCount());
+                                cout << "\nEnter sport number (1-" << table.getSportCount() << "): ";
+                                int sportIndex = getValidInput(1, table.getSportCount());
                                 cin.ignore();
-                                if (sportIndex == 0) {
-                                    cout << "Sport selection cancelled.\n";
-                                    continue;
-                                }
                                 char sport[50], time[50];
                                 if (table.getSportByIndex(sportIndex, sport, time)) {
                                     table.insert(id, "", sport, time);
@@ -1482,13 +1532,9 @@ int main() {
                             } else {
                                 cout << "\n--- Available Sports ---\n";
                                 table.displaySports();
-                                cout << "\nEnter sport number to remove (0 to exit, 1-" << table.getSportCount() << "): ";
-                                int sportIndex = getValidInput(0, table.getSportCount());
+                                cout << "\nEnter sport number to remove (1-" << table.getSportCount() << "): ";
+                                int sportIndex = getValidInput(1, table.getSportCount());
                                 cin.ignore();
-                                if (sportIndex == 0) {
-                                    cout << "Sport removal cancelled.\n";
-                                    continue;
-                                }
                                 char sport[50], time[50];
                                 if (table.getSportByIndex(sportIndex, sport, time)) {
                                     table.removeSport(id, sport);
@@ -1546,10 +1592,7 @@ int main() {
                             cout << "\n0. Exit\n1. Edit Name\n2. Edit ID\n3. Edit Password\nEnter action (0-3): ";
                             int editChoice = getValidInput(0, 3);
                             cin.ignore();
-                            if (editChoice == 0) {
-                                cout << "Edit record cancelled.\n";
-                                continue;
-                            }
+                            if (editChoice == 0) continue;
                             if (editChoice == 1) {
                                 cout << "Enter New Name: ";
                                 char newName[50];
@@ -1604,19 +1647,16 @@ int main() {
 
                         if (subChoice == 1) {
                             cout << "\n--- Manage Sport Selection ---\n";
-                            cout << "\n1. Add Sport\n2. Remove Sport\nEnter action (1-2): ";
-                            int action = getValidInput(1, 2);
+                            cout << "\n0. Exit\n1. Add Sport\n2. Remove Sport\nEnter action (0-2): ";
+                            int action = getValidInput(0, 2);
                             cin.ignore();
+                            if (action == 0) continue;
                             if (action == 1) {
                                 cout << "\n--- Available Sports ---\n";
                                 table.displaySports();
-                                cout << "\nEnter sport number (0 to exit, 1-" << table.getSportCount() << "): ";
-                                int sportIndex = getValidInput(0, table.getSportCount());
+                                cout << "\nEnter sport number (1-" << table.getSportCount() << "): ";
+                                int sportIndex = getValidInput(1, table.getSportCount());
                                 cin.ignore();
-                                if (sportIndex == 0) {
-                                    cout << "Sport selection cancelled.\n";
-                                    continue;
-                                }
                                 char sport[50], time[50];
                                 if (table.getSportByIndex(sportIndex, sport, time)) {
                                     table.insert(customerId, "", sport, time);
@@ -1624,13 +1664,9 @@ int main() {
                             } else {
                                 cout << "\n--- Available Sports ---\n";
                                 table.displaySports();
-                                cout << "\nEnter sport number to remove (0 to exit, 1-" << table.getSportCount() << "): ";
-                                int sportIndex = getValidInput(0, table.getSportCount());
+                                cout << "\nEnter sport number to remove (1-" << table.getSportCount() << "): ";
+                                int sportIndex = getValidInput(1, table.getSportCount());
                                 cin.ignore();
-                                if (sportIndex == 0) {
-                                    cout << "Sport removal cancelled.\n";
-                                    continue;
-                                }
                                 char sport[50], time[50];
                                 if (table.getSportByIndex(sportIndex, sport, time)) {
                                     table.removeSport(customerId, sport);
@@ -1680,10 +1716,7 @@ int main() {
                             cout << "0. Exit\n1. Edit Name\n2. Edit ID\n3. Edit Password\nEnter action (0-3): ";
                             int editChoice = getValidInput(0, 3);
                             cin.ignore();
-                            if (editChoice == 0) {
-                                cout << "Edit record cancelled.\n";
-                                continue;
-                            }
+                            if (editChoice == 0) continue;
                             if (editChoice == 1) {
                                 cout << "Enter New Name: ";
                                 char newName[50];
