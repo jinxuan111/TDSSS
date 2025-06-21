@@ -10,5 +10,4 @@ ID    | Username | Password | Type
 456   | runner   | pass456  | Customer
 789   | player   | pass789  | Customer
 0     | Username | Password | Type
-555   | gg       | abc123   | Admin
 ===============================
