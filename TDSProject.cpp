@@ -6,20 +6,20 @@
 #include <iomanip>
 #include <errno.h>
 #include <string>
-#include <direct.h>
 #include <set>
 using namespace std;
 
 // Forward declaration
+void trimWhitespace(char* str);
 int getValidInput(int min, int max);
 
 // Constants
 const int MAX_SIZE = 100;
 const int TABLE_SIZE = 17;
-const int MAX_SPORTS = 20;
+const int SPORT_COUNT = 8;
 const int MAX_ENTRIES = 100;
 const int MAX_USERS = 100;
-const string BASE_PATH = "C:\\Temp\\TDSSS\\";
+const string BASE_PATH = ".\\TDSSS\\";
 
 // Structures
 struct Node {
@@ -48,7 +48,7 @@ struct UserInfo {
     int id;
     char username[50];
     char password[50];
-    char type[20];
+    char type[20]; // "Admin" or "Customer"
 };
 
 // Base class for user management
@@ -126,8 +126,7 @@ public:
 class HashTable {
 private:
     Node* table[TABLE_SIZE];
-    Sport sports[MAX_SPORTS];
-    int sportCount;
+    Sport sports[SPORT_COUNT];
     bool isLoadingFromFile;
     Athlete athletes[MAX_ENTRIES];
     int athleteCount;
@@ -140,20 +139,18 @@ private:
     }
 
     void initSports() {
-        sportCount = 9;
-        strcpy(sports[0].name, "Football"); strcpy(sports[0].time, "Mon 10:00-12:00"); sports[0].capacity = 20; sports[0].current_count = 2;
-        strcpy(sports[1].name, "Basketball"); strcpy(sports[1].time, "Tue 14:00-16:00"); sports[1].capacity = 15; sports[1].current_count = 1;
+        strcpy(sports[0].name, "Football"); strcpy(sports[0].time, "Mon 10:00-12:00"); sports[0].capacity = 20; sports[0].current_count = 0;
+        strcpy(sports[1].name, "Basketball"); strcpy(sports[1].time, "Tue 14:00-16:00"); sports[1].capacity = 15; sports[1].current_count = 0;
         strcpy(sports[2].name, "Tennis"); strcpy(sports[2].time, "Wed 09:00-11:00"); sports[2].capacity = 10; sports[2].current_count = 0;
         strcpy(sports[3].name, "Swimming"); strcpy(sports[3].time, "Thu 13:00-15:00"); sports[3].capacity = 12; sports[3].current_count = 0;
         strcpy(sports[4].name, "Volleyball"); strcpy(sports[4].time, "Fri 15:00-17:00"); sports[4].capacity = 15; sports[4].current_count = 0;
         strcpy(sports[5].name, "Badminton"); strcpy(sports[5].time, "Mon 14:00-16:00"); sports[5].capacity = 10; sports[5].current_count = 0;
         strcpy(sports[6].name, "Athletics"); strcpy(sports[6].time, "Tue 10:00-12:00"); sports[6].capacity = 20; sports[6].current_count = 0;
         strcpy(sports[7].name, "Cycling"); strcpy(sports[7].time, "Wed 13:00-15:00"); sports[7].capacity = 10; sports[7].current_count = 0;
-        strcpy(sports[8].name, "Running"); strcpy(sports[8].time, "Mon 06:00-08:00"); sports[8].capacity = 25; sports[8].current_count = 1;
     }
 
     bool isValidSport(const char* sport) {
-        for (int i = 0; i < sportCount; i++) {
+        for (int i = 0; i < SPORT_COUNT; i++) {
             if (strcmp(sport, sports[i].name) == 0) return true;
         }
         return false;
@@ -176,7 +173,7 @@ private:
     }
 
     bool checkCapacity(const char* sport) {
-        for (int i = 0; i < sportCount; i++) {
+        for (int i = 0; i < SPORT_COUNT; i++) {
             if (strcmp(sport, sports[i].name) == 0) {
                 if (sports[i].current_count < sports[i].capacity) {
                     sports[i].current_count++;
@@ -189,7 +186,7 @@ private:
     }
 
     void reduceCapacity(const char* sport) {
-        for (int i = 0; i < sportCount; i++) {
+        for (int i = 0; i < SPORT_COUNT; i++) {
             if (strcmp(sport, sports[i].name) == 0) {
                 if (sports[i].current_count > 0) sports[i].current_count--;
                 break;
@@ -232,116 +229,6 @@ private:
         return id > 0;
     }
 
-    bool isValidTimeFormat(const char* time, char* formattedTime = NULL) {
-        if (strlen(time) < 12 || strlen(time) > 14) return false;
-        const char* days[5] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
-        bool validDay = false;
-        for (int i = 0; i < 5; i++) {
-            if (strncmp(time, days[i], 3) == 0) {
-                validDay = true;
-                break;
-            }
-        }
-        if (!validDay) return false;
-        int startHour, startMin, endHour, endMin;
-        char day[4], separator1, separator2;
-        if (sscanf(time, "%3s %d:%d%c%d:%d", day, &startHour, &startMin, &separator1, &endHour, &endMin) != 6) {
-            return false;
-        }
-        if (separator1 != '-' || startHour < 0 || startHour > 23 || startMin != 0 || endMin != 0 || endHour < 0 || endHour > 23 || endHour <= startHour) {
-            return false;
-        }
-        if (formattedTime) {
-            sprintf(formattedTime, "%s %02d:%02d-%02d:%02d", day, startHour, startMin, endHour, endMin);
-        }
-        return true;
-    }
-
-    void insertionSort(Athlete arr[], int left, int right) {
-        for (int i = left + 1; i <= right; i++) {
-            Athlete temp = arr[i];
-            int j = i - 1;
-            while (j >= left && arr[j].id > temp.id) {
-                arr[j + 1] = arr[j];
-                j--;
-            }
-            arr[j + 1] = temp;
-        }
-    }
-
-    void merge(Athlete arr[], int left, int mid, int right) {
-        int len1 = mid - left + 1;
-        int len2 = right - mid;
-        Athlete* leftArr = new Athlete[len1];
-        Athlete* rightArr = new Athlete[len2];
-        for (int i = 0; i < len1; i++) leftArr[i] = arr[left + i];
-        for (int i = 0; i < len2; i++) rightArr[i] = arr[mid + 1 + i];
-        int i = 0, j = 0, k = left;
-        while (i < len1 && j < len2) {
-            if (leftArr[i].id <= rightArr[j].id) {
-                arr[k++] = leftArr[i++];
-            } else {
-                arr[k++] = rightArr[j++];
-            }
-        }
-        while (i < len1) arr[k++] = leftArr[i++];
-        while (j < len2) arr[k++] = rightArr[j++];
-        delete[] leftArr;
-        delete[] rightArr;
-    }
-
-    void mergeSort(Athlete arr[], int left, int right) {
-        if (right - left <= 32) {
-            insertionSort(arr, left, right);
-            return;
-        }
-        int mid = left + (right - left) / 2;
-        mergeSort(arr, left, mid);
-        mergeSort(arr, mid + 1, right);
-        merge(arr, left, mid, right);
-    }
-
-    int binarySearch(int targetId) {
-        if (athleteCount == 0) return -1;
-        int left = 0, right = athleteCount - 1;
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
-            if (athletes[mid].id == targetId) return mid;
-            if (athletes[mid].id < targetId) left = mid + 1;
-            else right--;
-        }
-        return -1;
-    }
-
-    void syncAthletesArray() {
-        athleteCount = 0;
-        for (int i = 0; i < sportCount; i++) {
-            sports[i].current_count = 0;
-        }
-        for (int i = 0; i < TABLE_SIZE; i++) {
-            Node* current = table[i];
-            while (current != NULL && athleteCount < MAX_ENTRIES) {
-                athletes[athleteCount].id = current->id;
-                strcpy(athletes[athleteCount].name, current->name);
-                strcpy(athletes[athleteCount].sport, current->sport);
-                strcpy(athletes[athleteCount].time, current->time);
-                if (strcmp(current->sport, "None") != 0) {
-                    for (int j = 0; j < sportCount; j++) {
-                        if (strcmp(current->sport, sports[j].name) == 0) {
-                            sports[j].current_count++;
-                            break;
-                        }
-                    }
-                    athleteCount++;
-                } else {
-                    athleteCount++;
-                }
-                current = current->next;
-            }
-        }
-        if (athleteCount > 1) mergeSort(athletes, 0, athleteCount - 1);
-    }
-
     bool idExistsUser(int id) {
         for (int i = 0; i < userCount; i++) {
             if (users[i].id == id) return true;
@@ -365,11 +252,27 @@ private:
 
     bool createFileIfNotExists(const string& filename) {
         string dir = BASE_PATH;
-        if (_mkdir(dir.c_str()) != 0 && errno != EEXIST) {
+        string testFile = dir + "test.tmp";
+        ofstream test(testFile.c_str());
+        if (!test) {
+            #ifdef _WIN32
+                system(("mkdir " + dir).c_str());
+            #else
+                system(("mkdir -p " + dir).c_str());
+            #endif
+            test.open(testFile.c_str());
+            if (!test) {
+                cout << "Error: Unable to create directory '" << dir << "'" << endl;
+                return false;
+            }
+        }
+        test.close();
+        remove(testFile.c_str());
+        ofstream outFile(filename.c_str(), ios::app);
+        if (!outFile) {
+            cout << "Error: Unable to create file '" << filename << "': " << strerror(errno) << endl;
             return false;
         }
-        ofstream outFile(filename.c_str(), ios::app);
-        if (!outFile) return false;
         outFile.close();
         return true;
     }
@@ -386,29 +289,13 @@ private:
         return false;
     }
 
-    void saveUsersToFile(const string& filename) {
-        try {
-            string fullPath = BASE_PATH + filename;
-            if (!createFileIfNotExists(fullPath)) {
-                throw string("Failed to create file: ") + filename;
-            }
-            ofstream outFile(fullPath.c_str());
-            if (!outFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
-            outFile << "========== USER DATA ==========\n";
-            outFile << "ID    | Username | Password | Type\n";
-            outFile << "------|----------|----------|-------\n";
-            for (int i = 0; i < userCount; i++) {
-                outFile << left << setw(5) << users[i].id << " | "
-                        << setw(8) << users[i].username << " | "
-                        << setw(8) << users[i].password << " | "
-                        << users[i].type << endl;
-            }
-            outFile << "===============================\n";
-            outFile.close();
-        } catch (const string& error) {
-            cout << "Error: " << error << endl;
-        }
-    }
+    void saveUsersToFile(const string& filename);
+
+    void insertionSort(Athlete arr[], int left, int right);
+    void merge(Athlete arr[], int left, int mid, int right);
+    void mergeSort(Athlete arr[], int left, int right);
+    int binarySearch(int targetId);
+    void syncAthletesArray();
 
     friend void exportSummaryReport(HashTable& ht, const string& filename);
     friend void importData(HashTable& ht, const string& filename);
@@ -416,867 +303,55 @@ private:
     friend void backupData(HashTable& ht, const string& filename);
 
 public:
-    HashTable() {
-        for (int i = 0; i < TABLE_SIZE; i++) table[i] = NULL;
-        initSports();
-        isLoadingFromFile = false;
-        athleteCount = 0;
-        userCount = 0;
-        users[0].id = 1;
-        strcpy(users[0].username, "admin");
-        strcpy(users[0].password, "admin123");
-        strcpy(users[0].type, "Admin");
-        users[1].id = 2;
-        strcpy(users[1].username, "customer");
-        strcpy(users[1].password, "cust123");
-        strcpy(users[1].type, "Customer");
-        users[2].id = 123;
-        strcpy(users[2].username, "abc123");
-        strcpy(users[2].password, "pass123");
-        strcpy(users[2].type, "Customer");
-        users[3].id = 323;
-        strcpy(users[3].username, "abc");
-        strcpy(users[3].password, "pass323");
-        strcpy(users[3].type, "Customer");
-        userCount = 4;
-        string fullPath = BASE_PATH + "user_data.txt";
-        if (createFileIfNotExists(fullPath)) {
-            saveUsersToFile("user_data.txt");
-        }
-        // Initialize students and sports
-        insertStudent(123, "abc123", "pass123");
-        insert(123, "abc123", "Basketball", "Tue 14:00-16:00");
-        insertStudent(323, "abc", "pass323");
-        insert(323, "abc", "Football", "Mon 10:00-12:00");
-        insertStudent(456, "runner", "pass456");
-        insert(456, "runner", "Running", "Mon 06:00-08:00");
-        insertStudent(789, "player", "pass789");
-        insert(789, "player", "Football", "Mon 10:00-12:00");
-    }
-
-    int getSportCount() const { return sportCount; }
-
-    bool getSportByIndex(int index, char* sport, char* time) {
-        if (index < 1 || index > sportCount) return false;
-        strcpy(sport, sports[index - 1].name);
-        strcpy(time, sports[index - 1].time);
-        return true;
-    }
-
-    void trimWhitespace(char* str) {
-        char* start = str;
-        char* end;
-        while (isspace(*start)) start++;
-        end = start + strlen(start) - 1;
-        while (end >= start && isspace(*end)) end--;
-        *(end + 1) = '\0';
-        if (start != str) memmove(str, start, strlen(start) + 1);
-    }
-
-    bool addNewSport(const char* name, const char* time, int capacity) {
-        try {
-            if (sportCount >= MAX_SPORTS) throw "Maximum sport limit reached";
-            if (strlen(name) == 0) throw "Empty sport name";
-            if (!isValidTimeFormat(time)) throw "Invalid time format";
-            if (capacity <= 0) throw "Invalid capacity";
-            if (isValidSport(name)) throw "Sport already exists";
-            strcpy(sports[sportCount].name, name);
-            strcpy(sports[sportCount].time, time);
-            sports[sportCount].capacity = capacity;
-            sports[sportCount].current_count = 0;
-            sportCount++;
-            saveAllFiles();
-            cout << "Successfully added sport: " << name << endl;
-            return true;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-            return false;
-        }
-    }
-
-    bool deleteSport(const char* name) {
-        try {
-            if (!isValidSport(name)) throw "Sport does not exist";
-            for (int i = 0; i < sportCount; i++) {
-                if (strcmp(sports[i].name, name) == 0) {
-                    if (sports[i].current_count > 0) throw "Cannot delete sport with participants";
-                    for (int j = i; j < sportCount - 1; j++) {
-                        sports[j] = sports[j + 1];
-                    }
-                    sportCount--;
-                    saveAllFiles();
-                    cout << "Successfully deleted sport: " << name << endl;
-                    return true;
-                }
-            }
-            return false;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-            return false;
-        }
-    }
-
-    void registerUser() {
-        try {
-            if (userCount >= MAX_USERS) throw "Maximum user limit reached";
-            int id;
-            char username[50], password[50], type[20];
-            cout << "\n--- Register New User ---\n";
-            cout << "Enter ID: ";
-            id = getValidInput(1, 99999);
-            cin.ignore();
-            if (idExistsUser(id)) throw "ID already exists";
-            cout << "Enter username: ";
-            cin.getline(username, 50);
-            trimWhitespace(username);
-            if (strlen(username) == 0) throw "Empty username";
-            if (usernameExists(username)) throw "Username already exists";
-            cout << "Enter password: ";
-            cin.getline(password, 50);
-            trimWhitespace(password);
-            if (strlen(password) == 0) throw "Empty password";
-            cout << "Enter user type (1 for Admin, 2 for Customer): ";
-            int typeChoice = getValidInput(1, 2);
-            cin.ignore();
-            strcpy(type, typeChoice == 1 ? "Admin" : "Customer");
-            if (typeChoice == 2 && !idExists(id)) {
-                insertStudent(id, username, password);
-            }
-            users[userCount].id = id;
-            strncpy(users[userCount].username, username, 49);
-            users[userCount].username[49] = '\0';
-            strncpy(users[userCount].password, password, 49);
-            users[userCount].password[49] = '\0';
-            strcpy(users[userCount].type, type);
-            userCount++;
-            saveUsersToFile("user_data.txt");
-            cout << "User ID " << id << " ('" << username << "') registered successfully as " << type << "!" << endl;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void loadUsersFromFile(const string& filename) {
-        try {
-            string fullPath = BASE_PATH + filename;
-            if (!createFileIfNotExists(fullPath)) {
-                throw string("Failed to create file: ") + filename;
-            }
-            ifstream inFile(fullPath.c_str());
-            if (!inFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
-            char line[256];
-            bool firstLine = true;
-            while (inFile.getline(line, 256)) {
-                if (firstLine || strstr(line, "==========") || strstr(line, "------|") || line[0] == '\0') {
-                    firstLine = false;
-                    continue;
-                }
-                int id;
-                char username[50], password[50], type[20];
-                char* token = strtok(line, "|");
-                if (!token) continue;
-                trimWhitespace(token);
-                id = atoi(token);
-                token = strtok(NULL, "|");
-                if (!token) continue;
-                trimWhitespace(token);
-                strncpy(username, token, 49);
-                username[49] = '\0';
-                token = strtok(NULL, "|");
-                if (!token) continue;
-                trimWhitespace(token);
-                strncpy(password, token, 49);
-                password[49] = '\0';
-                token = strtok(NULL, "\n");
-                if (!token) continue;
-                trimWhitespace(token);
-                strncpy(type, token, 19);
-                type[19] = '\0';
-                if (userCount < MAX_USERS && !idExistsUser(id)) {
-                    users[userCount].id = id;
-                    strncpy(users[userCount].username, username, 49);
-                    users[userCount].username[49] = '\0';
-                    strncpy(users[userCount].password, password, 49);
-                    users[userCount].password[49] = '\0';
-                    strcpy(users[userCount].type, type);
-                    userCount++;
-                }
-            }
-            inFile.close();
-        } catch (const string& error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    User* authenticateUser(int id, const char* password, const char* expectedType) {
-        for (int i = 0; i < userCount; i++) {
-            if (users[i].id == id && strcmp(users[i].password, password) == 0 &&
-                strcmp(users[i].type, expectedType) == 0) {
-                if (strcmp(expectedType, "Admin") == 0) {
-                    return new Admin(id, users[i].username, password);
-                } else if (strcmp(expectedType, "Customer") == 0) {
-                    return new Customer(id, users[i].username, password);
-                }
-            }
-        }
-        return NULL;
-    }
-
-    bool insert(int id, const char* name, const char* sport, const char* time) {
-        try {
-            if (!isValidID(id)) throw "Invalid ID";
-            if (!idExists(id)) throw "ID not registered";
-            if (!isValidSport(sport)) throw "Invalid sport";
-            if (hasTimeConflict(id, time)) throw "Time conflict";
-            if (!checkCapacity(sport)) throw "Sport capacity full";
-
-            Node* newNode = new Node;
-            newNode->id = id;
-            char existingName[50];
-            if (findStudentName(id, existingName)) {
-                strcpy(newNode->name, existingName);
-            } else {
-                strcpy(newNode->name, name);
-            }
-            strcpy(newNode->sport, sport);
-            strcpy(newNode->time, time);
-            newNode->next = NULL;
-
-            int index = hashFunction(id);
-            newNode->next = table[index];
-            table[index] = newNode;
-
-            syncAthletesArray();
-            saveAllFiles();
-            cout << "Successfully inserted: ID=" << id << ", Name=" << newNode->name
-                 << ", Sport=" << sport << ", Time=" << time << endl;
-            return true;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-            return false;
-        }
-    }
-
-    bool insertStudent(int id, const char* name, const char* password) {
-        try {
-            if (!isValidID(id)) throw "Invalid ID";
-            if (idExists(id)) throw "ID already exists";
-            if (strlen(name) == 0) throw "Empty name";
-            if (strlen(password) == 0) throw "Empty password";
-
-            int index = hashFunction(id);
-            Node* newNode = new Node;
-            newNode->id = id;
-            strncpy(newNode->name, name, 49);
-            newNode->name[49] = '\0';
-            strcpy(newNode->sport, "None");
-            strcpy(newNode->time, "None");
-            newNode->next = NULL;
-
-            newNode->next = table[index];
-            table[index] = newNode;
-
-            if (userCount >= MAX_USERS) throw "Maximum user limit reached";
-            users[userCount].id = id;
-            strncpy(users[userCount].username, name, 49);
-            users[userCount].username[49] = '\0';
-            strncpy(users[userCount].password, password, 49);
-            users[userCount].password[49] = '\0';
-            strcpy(users[userCount].type, "Customer");
-            userCount++;
-
-            syncAthletesArray();
-            saveAllFiles();
-            cout << "Successfully added student: ID=" << id << ", Name=" << name << endl;
-            return true;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-            return false;
-        }
-    }
-
-    void search(int id) {
-        try {
-            if (!isValidID(id)) throw "Invalid ID";
-            int index = hashFunction(id);
-            Node* current = table[index];
-            bool found = false;
-            while (current != NULL) {
-                if (current->id == id && strcmp(current->sport, "None") != 0) {
-                    cout << "Found: ID=" << current->id << ", Name=" << current->name
-                         << ", Sport=" << current->sport << ", Time=" << current->time << endl;
-                    found = true;
-                }
-                current = current->next;
-            }
-            if (!found) cout << "ID " << id << " not found or has no sport allotments!" << endl;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void search(const char* name) {
-        bool found = false;
-        for (int i = 0; i < TABLE_SIZE; i++) {
-            Node* current = table[i];
-            while (current != NULL) {
-                if (strcmp(current->name, name) == 0 && strcmp(current->sport, "None") != 0) {
-                    cout << "Found: ID=" << current->id << ", Name=" << current->name
-                         << ", Sport=" << current->sport << ", Time=" << current->time << endl;
-                    found = true;
-                }
-                current = current->next;
-            }
-        }
-        if (!found) cout << "Name " << name << " not found!" << endl;
-    }
-
-    void searchBinary(int id) {
-        try {
-            if (!isValidID(id)) throw "Invalid ID";
-            syncAthletesArray();
-            int index = binarySearch(id);
-            if (index == -1) {
-                cout << "ID " << id << " not found!" << endl;
-            } else {
-                cout << "Found: ID=" << athletes[index].id << ", Name=" << athletes[index].name
-                     << ", Sport=" << athletes[index].sport << ", Time=" << athletes[index].time << endl;
-            }
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void display() {
-        cout << "\n============== HASH TABLE CONTENTS ==============\n";
-        cout << "Index | ID    | Name            | Sport         | Time\n";
-        cout << "------|-------|-----------------|---------------|------------------\n";
-        for (int i = 0; i < TABLE_SIZE; i++) {
-            cout << right << setw(5) << i << " |";
-            Node* current = table[i];
-            if (current == NULL) {
-                cout << setw(7) << "" << " |" << " Empty\n";
-                continue;
-            }
-            bool hasSport = false;
-            Node* temp = table[i];
-            while (temp != NULL) {
-                if (strcmp(temp->sport, "None") != 0) {
-                    hasSport = true;
-                    break;
-                }
-                temp = temp->next;
-            }
-            if (!hasSport) {
-                cout << setw(7) << "" << " |" << " Empty\n";
-                continue;
-            }
-            bool first = true;
-            while (current != NULL) {
-                if (strcmp(current->sport, "None") != 0) {
-                    if (!first) cout << "      |";
-                    cout << right << setw(7) << current->id << " |"
-                         << setw(16) << left << current->name << " |"
-                         << setw(14) << current->sport << " |"
-                         << current->time << endl;
-                    first = false;
-                }
-                current = current->next;
-            }
-        }
-        cout << "==================================================\n";
-    }
-
-    void displaySorted() {
-        syncAthletesArray();
-        cout << "\n========== SORTED ATHLETE DATA (BY ID - Merge Sort) ==========\n";
-        cout << "ID    | Name            | Sport         | Time\n";
-        cout << "------|-----------------|---------------|------------------\n";
-        for (int i = 0; i < athleteCount; i++) {
-            cout << right << setw(5) << athletes[i].id << " | "
-                 << setw(16) << left << athletes[i].name << " | "
-                 << setw(14) << athletes[i].sport << " | "
-                 << athletes[i].time << endl;
-        }
-        cout << "==================================================\n";
-    }
-
-    void displaySports() {
-        cout << "\n============= AVAILABLE SPORTS =============\n";
-        cout << "No. | Sport         | Time              | Capacity\n";
-        cout << "----|---------------|-------------------|---------|\n";
-        for (int i = 0; i < sportCount; i++) {
-            cout << right << setw(3) << (i + 1) << " | "
-                 << setw(14) << left << sports[i].name << " | "
-                 << setw(18) << sports[i].time << " | "
-                 << right << sports[i].current_count << "/" << sports[i].capacity << endl;
-        }
-        cout << "==========================================\n";
-    }
-
-    void displayFileContents(const string& filename) {
-        try {
-            string fullPath = BASE_PATH + filename;
-            ifstream inFile(fullPath.c_str());
-            if (!inFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
-            cout << "\n===== Contents of " << filename << " =====" << endl;
-            string line;
-            while (getline(inFile, line)) {
-                cout << line << endl;
-            }
-            inFile.close();
-            cout << "====================================\n";
-        } catch (const string& error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void displaySportParticipants(const char* sport) {
-        try {
-            if (!isValidSport(sport)) throw "Invalid sport";
-            cout << "\n======== PARTICIPANTS IN " << sport << " ========\n";
-            cout << "ID    | Name            | Time\n";
-            cout << "------|-----------------|------------------\n";
-            bool found = false;
-            for (int i = 0; i < TABLE_SIZE; i++) {
-                Node* current = table[i];
-                while (current != NULL) {
-                    if (strcmp(current->sport, sport) == 0) {
-                        cout << setw(5) << right << current->id << " | "
-                             << setw(15) << left << current->name << " | "
-                             << current->time << endl;
-                        found = true;
-                    }
-                    current = current->next;
-                }
-            }
-            if (!found) cout << "No participants found for " << sport << endl;
-            cout << "==========================================\n";
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void displaySportParticipantsSorted(const char* sport) {
-        try {
-            if (!isValidSport(sport)) throw "Invalid sport";
-            syncAthletesArray();
-            cout << "\n===== PARTICIPANTS IN " << sport << " (SORTED - Merge Sort) =====\n";
-            cout << "ID    | Name            | Time\n";
-            cout << "------|-----------------|------------------\n";
-            bool found = false;
-            for (int i = 0; i < athleteCount; i++) {
-                if (strcmp(athletes[i].sport, sport) == 0) {
-                    cout << right << setw(5) << athletes[i].id << " | "
-                         << setw(15) << left << athletes[i].name << " | "
-                         << athletes[i].time << endl;
-                    found = true;
-                }
-            }
-            if (!found) cout << "No participants found for " << sport << endl;
-            cout << "==========================================\n";
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void displayTimeTable(int id) {
-        try {
-            if (!isValidID(id)) throw "Invalid ID";
-            int index = hashFunction(id);
-            Node* current = table[index];
-            bool found = false;
-            char name[50] = "Unknown";
-            if (findStudentName(id, name)) found = true;
-            cout << "\n======== TIME TABLE FOR ID=" << id << " (" << name << ") ========\n";
-            cout << "Day | Schedule\n";
-            cout << "----|--------------------------------------------------\n";
-            const char* days[5] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
-            for (int i = 0; i < 5; i++) {
-                cout << setw(3) << days[i] << " | ";
-                bool hasClass = false;
-                struct SportEntry {
-                    char sport[50];
-                    char time[50];
-                };
-                SportEntry entries[10];
-                int entryCount = 0;
-                current = table[index];
-                while (current != NULL) {
-                    if (current->id == id && strstr(current->time, days[i]) != NULL && strcmp(current->sport, "None") != 0) {
-                        strcpy(entries[entryCount].sport, current->sport);
-                        strcpy(entries[entryCount].time, current->time);
-                        entryCount++;
-                    }
-                    current = current->next;
-                }
-                for (int j = 0; j < entryCount - 1; j++) {
-                    for (int k = j + 1; k < entryCount; k++) {
-                        if (strcmp(entries[j].time, entries[k].time) > 0) {
-                            SportEntry temp = entries[j];
-                            entries[j] = entries[k];
-                            entries[k] = temp;
-                        }
-                    }
-                }
-                for (int p = 0; p < entryCount; p++) {
-                    if (hasClass) cout << ", ";
-                    cout << entries[p].sport << " (" << entries[p].time + 4 << ")";
-                    hasClass = true;
-                }
-                if (!hasClass) cout << "No sports scheduled";
-                cout << endl;
-            }
-            cout << "=======================================================\n";
-            if (!found) cout << "Warning: ID " << id << " not found in system!" << endl;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void readFromFile(const string& filename) {
-        try {
-            if (loadedFiles.find(filename) != loadedFiles.end()) {
-                return;
-            }
-            loadedFiles.insert(filename);
-            isLoadingFromFile = true;
-            string fullPath = BASE_PATH + filename;
-            if (!createFileIfNotExists(fullPath)) {
-                throw string("Failed to create file: ") + filename;
-            }
-            ifstream inFile(fullPath.c_str());
-            if (!inFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
-            char line[256];
-            bool firstLine = true;
-            while (inFile.getline(line, 256)) {
-                if (firstLine || strstr(line, "==========") || strstr(line, "------|") || line[0] == '\0') {
-                    firstLine = false;
-                    continue;
-                    }
-                int id;
-                char name[50], sport[50], time[50];
-                char* token = strtok(line, "|");
-                if (!token) continue;
-                trimWhitespace(token);
-                id = atoi(token);
-                if (!isValidID(id)) continue;
-                token = strtok(NULL, "|");
-                if (!token) continue;
-                trimWhitespace(token);
-                strncpy(name, token, 49);
-                name[49] = '\0';
-                token = strtok(NULL, "|");
-                if (!token) continue;
-                trimWhitespace(token);
-                strncpy(sport, token, 49);
-                sport[49] = '\0';
-                token = strtok(NULL, "\n");
-                if (!token) continue;
-                trimWhitespace(token);
-                strncpy(time, token, 49);
-                time[49] = '\0';
-                if (!idExists(id)) insertStudent(id, name, "default123");
-                if (strcmp(sport, "None") != 0 && !sportExistsForId(id, sport, time)) {
-                    insert(id, name, sport, time);
-                }
-            }
-            inFile.close();
-            isLoadingFromFile = false;
-            syncAthletesArray();
-            saveAllFiles();
-        } catch (const string& error) {
-            cout << "Error: " << error << endl;
-            isLoadingFromFile = false;
-        }
-    }
-
-    void loadAllFiles() {
-        try {
-            loadedFiles.clear();
-            readFromFile("input.txt");
-            readFromFile("sorted_information.txt");
-            loadUsersFromFile("user_data.txt");
-            readFromFile("statistics.txt");
-            readFromFile("backup.txt");
-            syncAthletesArray();
-            saveAllFiles();
-        } catch (const string& error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void saveToFile(const string& filename) {
-        try {
-            string fullPath = BASE_PATH + filename;
-            if (!createFileIfNotExists(fullPath)) {
-                throw string("Failed to create file: ") + filename;
-            }
-            ofstream outFile(fullPath.c_str());
-            if (!outFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
-            outFile << "========== SPORTS ALLOTMENT SYSTEM DATA ==========\n";
-            outFile << "ID    | Name            | Sport         | Time\n";
-            outFile << "------|-----------------|---------------|-----------------\n";
-            int ids[MAX_ENTRIES];
-            int idCount = 0;
-            for (int i = 0; i < TABLE_SIZE; i++) {
-                Node* current = table[i];
-                while (current != NULL) {
-                    bool exists = false;
-                    for (int j = 0; j < idCount; j++) {
-                        if (ids[j] == current->id) {
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if (!exists && idCount < MAX_ENTRIES) ids[idCount++] = current->id;
-                    current = current->next;
-                }
-            }
-            for (int i = 0; i < idCount - 1; i++) {
-                for (int j = i + 1; j < idCount; j++) {
-                    if (ids[i] > ids[j]) {
-                        int temp = ids[i];
-                        ids[i] = ids[j];
-                        ids[j] = temp;
-                    }
-                }
-            }
-            for (int i = 0; i < idCount; i++) {
-                int id = ids[i];
-                bool hasNonNoneSport = false;
-                for (int j = 0; j < TABLE_SIZE; j++) {
-                    Node* current = table[j];
-                    while (current != NULL) {
-                        if (current->id == id && strcmp(current->sport, "None") != 0) {
-                            hasNonNoneSport = true;
-                            outFile << right << setw(5) << current->id << " | "
-                                    << setw(15) << left << current->name << " | "
-                                    << setw(13) << left << current->sport << " | "
-                                    << current->time << endl;
-                        }
-                        current = current->next;
-                    }
-                }
-                if (!hasNonNoneSport) {
-                    for (int j = 0; j < TABLE_SIZE; j++) {
-                        Node* current = table[j];
-                        while (current != NULL) {
-                            if (current->id == id && strcmp(current->sport, "None") == 0) {
-                                outFile << right << setw(5) << current->id << " | "
-                                        << setw(15) << left << current->name << " | "
-                                        << setw(13) << left << current->sport << " | "
-                                        << current->time << endl;
-                                break;
-                            }
-                            current = current->next;
-                        }
-                    }
-                }
-            }
-            outFile << "==================================================\n";
-            outFile.close();
-        } catch (const string& error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void saveAllFiles() {
-        syncAthletesArray();
-        saveToFile("input.txt");
-        saveToFile("sorted_information.txt");
-        saveToFile("backup.txt");
-        generateStatistics(*this, "statistics.txt");
-        exportSummaryReport(*this, "summary_report.txt");
-        saveUsersToFile("user_data.txt");
-    }
-
-    void removeSport(int id, const char* sport) {
-        try {
-            if (!isValidID(id)) throw "Invalid ID";
-            if (!isValidSport(sport)) throw "Invalid sport";
-            int index = hashFunction(id);
-            Node* current = table[index];
-            Node* prev = NULL;
-            while (current != NULL) {
-                if (current->id == id && strcmp(current->sport, sport) == 0) {
-                    reduceCapacity(sport);
-                    if (prev == NULL) table[index] = current->next;
-                    else prev->next = current->next;
-                    syncAthletesArray();
-                    saveAllFiles();
-                    cout << "Successfully removed: ID=" << id << ", Name=" << current->name
-                         << ", Sport=" << sport << endl;
-                    delete current;
-                    return;
-                }
-                prev = current;
-                current = current->next;
-            }
-            cout << "ID " << id << " with sport " << sport << " not found!" << endl;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void editStudentRecord(int id, const char* newName) {
-        try {
-            if (!isValidID(id)) throw "Invalid ID";
-            if (!idExists(id)) throw "ID not found";
-            if (strlen(newName) == 0) throw "Empty name";
-            int index = hashFunction(id);
-            Node* current = table[index];
-            while (current != NULL) {
-                if (current->id == id) {
-                    strncpy(current->name, newName, 49);
-                    current->name[49] = '\0';
-                }
-                current = current->next;
-            }
-            syncAthletesArray();
-            saveAllFiles();
-            cout << "Successfully updated name for ID=" << id << " to " << newName << endl;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void editStudentRecord(int oldId, int newId) {
-        try {
-            if (!isValidID(oldId)) throw "Invalid old ID";
-            if (!isValidID(newId)) throw "Invalid new ID";
-            if (!idExists(oldId)) throw "Old ID not found";
-            if (idExists(newId)) throw "New ID already exists";
-
-            int oldIndex = hashFunction(oldId);
-            int newIndex = hashFunction(newId);
-            Node* current = table[oldIndex];
-            Node* prev = NULL;
-            Node* newNodeHead = NULL;
-
-            while (current != NULL) {
-                if (current->id == oldId) {
-                    Node* newNode = new Node;
-                    newNode->id = newId;
-                    strcpy(newNode->name, current->name);
-                    strcpy(newNode->sport, current->sport);
-                    strcpy(newNode->time, current->time);
-                    newNode->next = newNodeHead;
-                    newNodeHead = newNode;
-
-                    Node* temp = current;
-                    if (prev == NULL) table[oldIndex] = current->next;
-                    else prev->next = current->next;
-                    current = current->next;
-                    delete temp;
-                    continue;
-                }
-                prev = current;
-                current = current->next;
-            }
-
-            if (newNodeHead != NULL) {
-                newNodeHead->next = table[newIndex];
-                table[newIndex] = newNodeHead;
-            }
-
-            syncAthletesArray();
-            saveAllFiles();
-            cout << "Successfully updated ID from " << oldId << " to " << newId << endl;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void editUserRecord(int id, const char* newUsername, const char* newPassword) {
-        try {
-            int userIndex = findUserIndexById(id);
-            if (userIndex == -1) throw "User ID not found";
-            if (newUsername && strlen(newUsername) > 0) {
-                if (usernameExists(newUsername)) throw "Username already exists";
-                strncpy(users[userIndex].username, newUsername, 49);
-                users[userIndex].username[49] = '\0';
-            }
-            if (newPassword && strlen(newPassword) > 0) {
-                strncpy(users[userIndex].password, newPassword, 49);
-                users[userIndex].password[49] = '\0';
-            }
-            saveUsersToFile("user_data.txt");
-            cout << "Successfully updated user record for ID=" << id << endl;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void editUserRecord(int oldId, int newId) {
-        try {
-            if (!isValidID(oldId)) throw "Invalid old ID";
-            if (!isValidID(newId)) throw "Invalid new ID";
-            int userIndex = findUserIndexById(oldId);
-            if (userIndex == -1) throw "Old user ID not found";
-            if (idExistsUser(newId)) throw "New user ID already exists";
-            users[userIndex].id = newId;
-            saveUsersToFile("user_data.txt");
-            cout << "Successfully updated user ID from " << oldId << " to " << newId << endl;
-        } catch (const char* error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    void generateDetailedReport(const string& filename) {
-        try {
-            string fullPath = BASE_PATH + filename;
-            if (!createFileIfNotExists(fullPath)) {
-                throw string("Failed to create file: ") + filename;
-            }
-            ofstream outFile(fullPath.c_str());
-            if (!outFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
-            outFile << "========== DETAILED SPORTS REPORT ==========\n";
-            outFile << "Total Athletes: " << athleteCount << "\n";
-            outFile << "Total Sports: " << sportCount << "\n\n";
-            outFile << "Sport-wise Participation:\n";
-            outFile << "Sport         | Participants | Capacity | Utilization (%)\n";
-            outFile << "--------------|--------------|----------|---------------\n";
-            for (int i = 0; i < sportCount; i++) {
-                float utilization = (sports[i].current_count * 100.0) / sports[i].capacity;
-                outFile << left << setw(13) << sports[i].name << " | "
-                        << setw(12) << sports[i].current_count << " | "
-                        << setw(8) << sports[i].capacity << " | "
-                        << fixed << setprecision(2) << utilization << "%\n";
-            }
-            outFile << "\nDay-wise Schedule Distribution:\n";
-            const char* days[5] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
-            for (int i = 0; i < 5; i++) {
-                outFile << "\n" << days[i] << ":\n";
-                for (int j = 0; j < sportCount; j++) {
-                    if (strstr(sports[j].time, days[i]) != NULL) {
-                        outFile << sports[j].name << " (" << sports[j].time << "): "
-                                << sports[j].current_count << " participants\n";
-                    }
-                }
-            }
-            outFile << "==========================================\n";
-            outFile.close();
-            cout << "Detailed report generated: " << filename << endl;
-        } catch (const string& error) {
-            cout << "Error: " << error << endl;
-        }
-    }
-
-    ~HashTable() {
-        for (int i = 0; i < TABLE_SIZE; i++) {
-            Node* current = table[i];
-            while (current != NULL) {
-                Node* temp = current;
-                current = current->next;
-                delete temp;
-            }
-            table[i] = NULL;
-        }
-    }
+    HashTable();
+    int getSportCount() const;
+    bool getSportByIndex(int index, char* sport, char* time);
+    void registerUser();
+    void loadUsersFromFile(const string& filename);
+    User* authenticateUser(int id, const char* password, const char* expectedType);
+    bool insert(int id, const char* name, const char* sport, const char* time);
+    bool insertStudent(int id, const char* name, const char* password);
+    void search(int id);
+    void search(const char* name);
+    void searchBinary(int id);
+    void display();
+    void displaySorted();
+    void displaySports();
+    void displayFileContents(const string& filename);
+    void displaySportParticipants(const char* sport);
+    void displaySportParticipantsSorted(const char* sport);
+    void displayTimeTable(int id);
+    void readFromFile(const string& filename);
+    void loadAllFiles();
+    void saveToFile(const string& filename);
+    void saveAllFiles();
+    void removeSport(int id, const char* sport);
+    void editStudentRecord(int id, const char* newName);
+    void editStudentRecord(int oldId, int newId);
+    void editUserRecord(int id, const char* newUsername, const char* newPassword);
+    void editUserRecord(int oldId, int newId);
+    
+    // NEW FUNCTION DECLARATIONS
+   void addNewStudent();
+   void deleteSport();
+   void deleteStudentRegistration();
+   void sortRecords();
+   void editSportInformation();   
+    
+    ~HashTable();
 };
 
 set<string> HashTable::loadedFiles;
+
+void trimWhitespace(char* str) {
+    char* start = str;
+    char* end;
+    while (isspace(*start)) start++;
+    end = start + strlen(start) - 1;
+    while (end >= start && isspace(*end)) end--;
+    *(end + 1) = '\0';
+    if (start != str) memmove(str, start, strlen(start) + 1);
+}
 
 void exportSummaryReport(HashTable& ht, const string& filename) {
     try {
@@ -1289,7 +364,7 @@ void exportSummaryReport(HashTable& ht, const string& filename) {
         outFile << "========== SPORTS PARTICIPATION SUMMARY ==========\n";
         outFile << "Sport         | Participants | Capacity\n";
         outFile << "--------------|--------------|---------|\n";
-        for (int i = 0; i < ht.sportCount; i++) {
+        for (int i = 0; i < SPORT_COUNT; i++) {
             outFile << left << setw(13) << ht.sports[i].name << " | "
                     << setw(12) << ht.sports[i].current_count << " | "
                     << ht.sports[i].capacity << endl;
@@ -1316,7 +391,7 @@ void generateStatistics(HashTable& ht, const string& filename) {
         outFile << "========== SPORTS STATISTICS ==========\n";
         outFile << "Total Athletes: " << ht.athleteCount << "\n";
         outFile << "Sport Distribution:\n";
-        for (int i = 0; i < ht.sportCount; i++) {
+        for (int i = 0; i < SPORT_COUNT; i++) {
             outFile << ht.sports[i].name << ": " << ht.sports[i].current_count << " participants\n";
         }
         outFile << "=======================================\n";
@@ -1350,6 +425,1147 @@ void waitForUser() {
     cin.get();
 }
 
+HashTable::HashTable() {
+    for (int i = 0; i < TABLE_SIZE; i++) table[i] = NULL;
+    initSports();
+    isLoadingFromFile = false;
+    athleteCount = 0;
+    userCount = 0;
+    users[0].id = 1;
+    strcpy(users[0].username, "admin");
+    strcpy(users[0].password, "admin123");
+    strcpy(users[0].type, "Admin");
+    users[1].id = 2;
+    strcpy(users[1].username, "customer");
+    strcpy(users[1].password, "cust123");
+    strcpy(users[1].type, "Customer");
+    userCount = 2;
+    string fullPath = BASE_PATH + "user_data.txt";
+    if (createFileIfNotExists(fullPath)) {
+        saveUsersToFile("user_data.txt");
+    }
+}
+
+int HashTable::getSportCount() const { return SPORT_COUNT; }
+
+bool HashTable::getSportByIndex(int index, char* sport, char* time) {
+    if (index < 1 || index > SPORT_COUNT) return false;
+    strcpy(sport, sports[index - 1].name);
+    strcpy(time, sports[index - 1].time);
+    return true;
+}
+
+void HashTable::registerUser() {
+    try {
+        if (userCount >= MAX_USERS) throw "Maximum user limit reached";
+        int id;
+        char username[50], password[50], type[20];
+        cout << "\n--- Register New User ---\n";
+        cout << "Enter ID: ";
+        id = getValidInput(1, 99999);
+        cin.ignore();
+        if (idExistsUser(id)) throw "ID already exists";
+        cout << "Enter username: ";
+        cin.getline(username, 50);
+        trimWhitespace(username);
+        if (strlen(username) == 0) throw "Empty username";
+        cout << "Enter password: ";
+        cin.getline(password, 50);
+        trimWhitespace(password);
+        if (strlen(password) == 0) throw "Empty password";
+        cout << "Enter user type (1 for Admin, 2 for Customer): ";
+        int typeChoice = getValidInput(1, 2);
+        cin.ignore();
+        strcpy(type, typeChoice == 1 ? "Admin" : "Customer");
+        if (typeChoice == 2 && !idExists(id)) {
+            insertStudent(id, username, password);
+        }
+        users[userCount].id = id;
+        strncpy(users[userCount].username, username, 49);
+        users[userCount].username[49] = '\0';
+        strncpy(users[userCount].password, password, 49);
+        users[userCount].password[49] = '\0';
+        strcpy(users[userCount].type, type);
+        userCount++;
+        saveUsersToFile("user_data.txt");
+        cout << "User ID " << id << " ('" << username << "') registered successfully as " << type << "!" << endl;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::loadUsersFromFile(const string& filename) {
+    try {
+        string fullPath = BASE_PATH + filename;
+        if (!createFileIfNotExists(fullPath)) {
+            throw string("Failed to create file: ") + filename;
+        }
+        ifstream inFile(fullPath.c_str());
+        if (!inFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
+        char line[256];
+        bool firstLine = true;
+        while (inFile.getline(line, 256)) {
+            if (firstLine || strstr(line, "==========") || strstr(line, "------|") || line[0] == '\0') {
+                firstLine = false;
+                continue;
+            }
+            int id;
+            char username[50], password[50], type[20];
+            char* token = strtok(line, "|");
+            if (!token) continue;
+            trimWhitespace(token);
+            id = atoi(token);
+            token = strtok(NULL, "|");
+            if (!token) continue;
+            trimWhitespace(token);
+            strncpy(username, token, 49);
+            username[49] = '\0';
+            token = strtok(NULL, "|");
+            if (!token) continue;
+            trimWhitespace(token);
+            strncpy(password, token, 49);
+            password[49] = '\0';
+            token = strtok(NULL, "\n");
+            if (!token) continue;
+            trimWhitespace(token);
+            strncpy(type, token, 19);
+            type[19] = '\0';
+            if (userCount < MAX_USERS && !idExistsUser(id)) {
+                users[userCount].id = id;
+                strncpy(users[userCount].username, username, 49);
+                users[userCount].username[49] = '\0';
+                strncpy(users[userCount].password, password, 49);
+                users[userCount].password[49] = '\0';
+                strcpy(users[userCount].type, type);
+                userCount++;
+            }
+        }
+        inFile.close();
+        saveUsersToFile("user_data.txt"); // Ensure file is updated
+    } catch (const string& error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+User* HashTable::authenticateUser(int id, const char* password, const char* expectedType) {
+    for (int i = 0; i < userCount; i++) {
+        if (users[i].id == id && strcmp(users[i].password, password) == 0 &&
+            strcmp(users[i].type, expectedType) == 0) {
+            if (strcmp(expectedType, "Admin") == 0) {
+                return new Admin(id, users[i].username, password);
+            } else if (strcmp(expectedType, "Customer") == 0) {
+                return new Customer(id, users[i].username, password);
+            }
+        }
+    }
+    return NULL;
+}
+
+bool HashTable::insert(int id, const char* name, const char* sport, const char* time) {
+    try {
+        if (!isValidID(id)) throw "Invalid ID";
+        if (!idExists(id)) throw "ID not registered";
+        if (!isValidSport(sport)) throw "Invalid sport";
+        if (hasTimeConflict(id, time)) throw "Time conflict";
+        if (!checkCapacity(sport)) throw "Sport capacity full";
+
+        Node* newNode = new Node;
+        newNode->id = id;
+        char existingName[50];
+        if (findStudentName(id, existingName)) {
+            strcpy(newNode->name, existingName);
+        } else {
+            strcpy(newNode->name, name);
+        }
+        strcpy(newNode->sport, sport);
+        strcpy(newNode->time, time);
+        newNode->next = NULL;
+
+        int index = hashFunction(id);
+        newNode->next = table[index];
+        table[index] = newNode;
+
+        syncAthletesArray();
+        saveAllFiles();
+        cout << "Successfully inserted: ID=" << id << ", Name=" << newNode->name
+             << ", Sport=" << sport << ", Time=" << time << endl;
+        return true;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+        return false;
+    }
+}
+
+bool HashTable::insertStudent(int id, const char* name, const char* password) {
+    try {
+        if (!isValidID(id)) throw "Invalid ID";
+        if (idExists(id)) throw "ID already exists";
+        if (strlen(name) == 0) throw "Empty name";
+        if (strlen(password) == 0) throw "Empty password";
+
+        int index = hashFunction(id);
+        Node* newNode = new Node;
+        newNode->id = id;
+        strncpy(newNode->name, name, 49);
+        newNode->name[49] = '\0';
+        strcpy(newNode->sport, "None");
+        strcpy(newNode->time, "None");
+        newNode->next = NULL;
+
+        newNode->next = table[index];
+        table[index] = newNode;
+
+        if (userCount >= MAX_USERS) throw "Maximum user limit reached";
+        users[userCount].id = id;
+        strncpy(users[userCount].username, name, 49);
+        users[userCount].username[49] = '\0';
+        strncpy(users[userCount].password, password, 49);
+        users[userCount].password[49] = '\0';
+        strcpy(users[userCount].type, "Customer");
+        userCount++;
+
+        syncAthletesArray();
+        saveAllFiles();
+        saveUsersToFile("user_data.txt");
+        cout << "Successfully added student: ID=" << id << ", Name=" << name << endl;
+        return true;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+        return false;
+    }
+}
+
+// NEW FUNCTION IMPLEMENTATIONS
+void HashTable::addNewStudent() {
+    try {
+        cout << "\n--- Add New Student ---\n";
+        cout << "Enter Student ID: ";
+        int id = getValidInput(1, 99999);
+        cin.ignore();
+        
+        if (idExists(id)) {
+            throw "Student ID already exists";
+        }
+        
+        cout << "Enter Student Name: ";
+        char name[50];
+        cin.getline(name, 50);
+        trimWhitespace(name);
+        
+        if (strlen(name) == 0) {
+            throw "Empty name not allowed";
+        }
+        
+        cout << "Enter Password: ";
+        char password[50];
+        cin.getline(password, 50);
+        trimWhitespace(password);
+        
+        if (strlen(password) == 0) {
+            throw "Empty password not allowed";
+        }
+        
+        // Insert student with no sport initially
+        insertStudent(id, name, password);
+        
+        cout << "Student added successfully!" << endl;
+        cout << "ID: " << id << ", Name: " << name << endl;
+        
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::deleteSport() {
+    try {
+        cout << "\n--- Delete Sport Registration ---\n";
+        cout << "Enter Student ID: ";
+        int id = getValidInput(1, 99999);
+        cin.ignore();
+        
+        if (!idExists(id)) {
+            throw "Student ID not found";
+        }
+        
+        // Display current sports for this student
+        cout << "\nCurrent sports for ID " << id << ":\n";
+        search(id);
+        
+        cout << "\n--- Available Sports to Remove ---\n";
+        displaySports();
+        
+        cout << "\nEnter sport number to remove (0 to cancel, 1-" << getSportCount() << "): ";
+        int sportIndex = getValidInput(0, getSportCount());
+        cin.ignore();
+        
+        if (sportIndex == 0) {
+            cout << "Sport deletion cancelled.\n";
+            return;
+        }
+        
+        char sport[50], time[50];
+        if (getSportByIndex(sportIndex, sport, time)) {
+            removeSport(id, sport);
+        }
+        
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::deleteStudentRegistration() {
+    try {
+        cout << "\n--- Delete Student Registration ---\n";
+        cout << "Enter Student ID to delete: ";
+        int id = getValidInput(1, 99999);
+        cin.ignore();
+        
+        if (!idExists(id)) {
+            throw "Student ID not found";
+        }
+        
+        cout << "Are you sure you want to delete all records for ID " << id << "? (y/n): ";
+        char confirm;
+        cin >> confirm;
+        cin.ignore();
+        
+        if (confirm != 'y' && confirm != 'Y') {
+            cout << "Deletion cancelled.\n";
+            return;
+        }
+        
+        // Remove all sports for this student
+        int index = hashFunction(id);
+        Node* current = table[index];
+        Node* prev = NULL;
+        
+        while (current != NULL) {
+            if (current->id == id) {
+                // Reduce capacity for each sport
+                if (strcmp(current->sport, "None") != 0) {
+                    reduceCapacity(current->sport);
+                }
+                
+                Node* temp = current;
+                if (prev == NULL) {
+                    table[index] = current->next;
+                    current = current->next;
+                } else {
+                    prev->next = current->next;
+                    current = current->next;
+                }
+                delete temp;
+            } else {
+                prev = current;
+                current = current->next;
+            }
+        }
+        
+        // Remove from user list
+        for (int i = 0; i < userCount; i++) {
+            if (users[i].id == id) {
+                for (int j = i; j < userCount - 1; j++) {
+                    users[j] = users[j + 1];
+                }
+                userCount--;
+                break;
+            }
+        }
+        
+        syncAthletesArray();
+        saveAllFiles();
+        saveUsersToFile("user_data.txt");
+        
+        cout << "Student registration deleted successfully!" << endl;
+        
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::sortRecords() {
+    try {
+        cout << "\n--- Sort Records ---\n";
+        cout << "1. Sort by ID (Merge Sort)\n";
+        cout << "2. Sort by Name (Insertion Sort)\n";
+        cout << "Enter sorting option (1-2): ";
+        
+        int sortChoice = getValidInput(1, 2);
+        cin.ignore();
+        
+        syncAthletesArray();
+        
+        if (sortChoice == 1) {
+            // Already sorted by ID in syncAthletesArray using merge sort
+            cout << "\n--- Records Sorted by ID (Merge Sort) ---\n";
+            displaySorted();
+        } else {
+            // Sort by name using insertion sort
+            cout << "\n--- Records Sorted by Name (Insertion Sort) ---\n";
+            
+            // Create temporary array for name sorting
+            Athlete tempAthletes[MAX_ENTRIES];
+            int tempCount = 0;
+            
+            // Copy athletes with sports (not "None")
+            for (int i = 0; i < athleteCount; i++) {
+                if (strcmp(athletes[i].sport, "None") != 0) {
+                    tempAthletes[tempCount++] = athletes[i];
+                }
+            }
+            
+            // Insertion sort by name
+            for (int i = 1; i < tempCount; i++) {
+                Athlete temp = tempAthletes[i];
+                int j = i - 1;
+                while (j >= 0 && strcmp(tempAthletes[j].name, temp.name) > 0) {
+                    tempAthletes[j + 1] = tempAthletes[j];
+                    j--;
+                }
+                tempAthletes[j + 1] = temp;
+            }
+            
+            // Display sorted results
+            cout << "ID    | Name            | Sport         | Time\n";
+            cout << "------|-----------------|---------------|------------------\n";
+            for (int i = 0; i < tempCount; i++) {
+                cout << right << setw(5) << tempAthletes[i].id << " | "
+                     << setw(16) << left << tempAthletes[i].name << " | "
+                     << setw(14) << tempAthletes[i].sport << " | "
+                     << tempAthletes[i].time << endl;
+            }
+            cout << "==================================================\n";
+        }
+        
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::search(int id) {
+    try {
+        if (!isValidID(id)) throw "Invalid ID";
+        int index = hashFunction(id);
+        Node* current = table[index];
+        bool found = false;
+        while (current != NULL) {
+            if (current->id == id && strcmp(current->sport, "None") != 0) {
+                cout << "Found: ID=" << current->id << ", Name=" << current->name
+                     << ", Sport=" << current->sport << ", Time=" << current->time << endl;
+                found = true;
+            }
+            current = current->next;
+        }
+        if (!found) cout << "ID " << id << " not found or has no sport allotments!" << endl;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::search(const char* name) {
+    bool found = false;
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        Node* current = table[i];
+        while (current != NULL) {
+            if (strcmp(current->name, name) == 0 && strcmp(current->sport, "None") != 0) {
+                cout << "Found: ID=" << current->id << ", Name=" << current->name
+                     << ", Sport=" << current->sport << ", Time=" << current->time << endl;
+                found = true;
+            }
+            current = current->next;
+        }
+    }
+    if (!found) cout << "Name " << name << " not found!" << endl;
+}
+
+void HashTable::searchBinary(int id) {
+    try {
+        if (!isValidID(id)) throw "Invalid ID";
+        syncAthletesArray();
+        int index = binarySearch(id);
+        if (index == -1) {
+            cout << "ID " << id << " not found!" << endl;
+        } else {
+            cout << "Found: ID=" << athletes[index].id << ", Name=" << athletes[index].name
+                 << ", Sport=" << athletes[index].sport << ", Time=" << athletes[index].time << endl;
+        }
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::display() {
+    cout << "\n============== HASH TABLE CONTENTS ==============\n";
+    cout << "Index | ID    | Name            | Sport         | Time\n";
+    cout << "------|-------|-----------------|---------------|------------------\n";
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        cout << right << setw(5) << i << " |";
+        Node* current = table[i];
+        if (current == NULL) {
+            cout << setw(7) << "" << " |" << " Empty\n";
+            continue;
+        }
+        bool hasSport = false;
+        Node* temp = current;
+        while (temp != NULL) {
+            if (strcmp(temp->sport, "None") != 0) {
+                hasSport = true;
+                break;
+            }
+            temp = temp->next;
+        }
+        if (!hasSport) {
+            cout << setw(7) << "" << " |" << " Empty\n";
+            continue;
+        }
+        bool first = true;
+        while (current != NULL) {
+            if (strcmp(current->sport, "None") != 0) {
+                if (!first) cout << "      |";
+                cout << right << setw(7) << current->id << " |"
+                     << setw(16) << left << current->name << " |"
+                     << setw(14) << current->sport << " |"
+                     << current->time << endl;
+                first = false;
+            }
+            current = current->next;
+        }
+    }
+    cout << "==================================================\n";
+}
+
+void HashTable::displaySorted() {
+    syncAthletesArray();
+    cout << "\n========== SORTED ATHLETE DATA (BY ID - Merge Sort) ==========\n";
+    cout << "ID    | Name            | Sport         | Time\n";
+    cout << "------|-----------------|---------------|------------------\n";
+    for (int i = 0; i < athleteCount; i++) {
+        cout << right << setw(5) << athletes[i].id << " | "
+             << setw(16) << left << athletes[i].name << " | "
+             << setw(14) << athletes[i].sport << " | "
+             << athletes[i].time << endl;
+    }
+    cout << "==================================================\n";
+}
+
+void HashTable::displaySports() {
+    cout << "\n============= AVAILABLE SPORTS =============\n";
+    cout << "No. | Sport         | Time              | Capacity\n";
+    cout << "----|---------------|-------------------|---------|\n";
+    for (int i = 0; i < SPORT_COUNT; i++) {
+        cout << right << setw(3) << (i + 1) << " | "
+             << setw(13) << left << sports[i].name << " | "
+             << setw(17) << sports[i].time << " | "
+             << sports[i].current_count << "/" << sports[i].capacity << endl;
+    }
+    cout << "==========================================\n";
+}
+
+void HashTable::displayFileContents(const string& filename) {
+    try {
+        string fullPath = BASE_PATH + filename;
+        ifstream inFile(fullPath.c_str());
+        if (!inFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
+        cout << "\n===== Contents of " << filename << " =====" << endl;
+        string line;
+        while (getline(inFile, line)) cout << line << endl;
+        inFile.close();
+        cout << "====================================\n";
+    } catch (const string& error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::displaySportParticipants(const char* sport) {
+    try {
+        if (!isValidSport(sport)) throw "Invalid sport";
+        cout << "\n======== PARTICIPANTS IN " << sport << " ========\n";
+        cout << "ID    | Name            | Time\n";
+        cout << "------|-----------------|------------------\n";
+        bool found = false;
+        for (int i = 0; i < TABLE_SIZE; i++) {
+            Node* current = table[i];
+            while (current != NULL) {
+                if (strcmp(current->sport, sport) == 0) {
+                    cout << setw(5) << right << current->id << " | "
+                         << setw(15) << left << current->name << " | "
+                         << current->time << endl;
+                    found = true;
+                }
+                current = current->next;
+            }
+        }
+        if (!found) cout << "No participants found for " << sport << endl;
+        cout << "==========================================\n";
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::displaySportParticipantsSorted(const char* sport) {
+    try {
+        if (!isValidSport(sport)) throw "Invalid sport";
+        syncAthletesArray();
+        cout << "\n===== PARTICIPANTS IN " << sport << " (SORTED - Merge Sort) =====\n";
+        cout << "ID    | Name            | Time\n";
+        cout << "------|-----------------|------------------\n";
+        bool found = false;
+        for (int i = 0; i < athleteCount; i++) {
+            if (strcmp(athletes[i].sport, sport) == 0) {
+                cout << right << setw(5) << athletes[i].id << " | "
+                     << setw(15) << left << athletes[i].name << " | "
+                     << athletes[i].time << endl;
+                found = true;
+            }
+        }
+        if (!found) cout << "No participants found for " << sport << endl;
+        cout << "==========================================\n";
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::displayTimeTable(int id) {
+    try {
+        if (!isValidID(id)) throw "Invalid ID";
+        int index = hashFunction(id);
+        Node* current = table[index];
+        bool found = false;
+        char name[50] = "Unknown";
+        if (findStudentName(id, name)) found = true;
+        cout << "\n======== TIME TABLE FOR ID=" << id << " (" << name << ") ========\n";
+        cout << "Day | Schedule\n";
+        cout << "----|--------------------------------------------------\n";
+        const char* days[5] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
+        for (int i = 0; i < 5; i++) {
+            cout << setw(3) << days[i] << " | ";
+            bool hasClass = false;
+            struct SportEntry {
+                char sport[50];
+                char time[50];
+            };
+            SportEntry entries[10];
+            int entryCount = 0;
+            current = table[index];
+            while (current != NULL) {
+                if (current->id == id && strstr(current->time, days[i]) != NULL) {
+                    strcpy(entries[entryCount].sport, current->sport);
+                    strcpy(entries[entryCount].time, current->time);
+                    entryCount++;
+                }
+                current = current->next;
+            }
+            for (int j = 0; j < entryCount - 1; j++) {
+                for (int k = j + 1; k < entryCount; k++) {
+                    if (strcmp(entries[j].time, entries[k].time) > 0) {
+                        SportEntry temp = entries[j];
+                        entries[j] = entries[k];
+                        entries[k] = temp;
+                    }
+                }
+            }
+            for (int j = 0; j < entryCount; j++) {
+                if (hasClass) cout << ", ";
+                cout << entries[j].sport << " (" << entries[j].time + 4 << ")";
+                hasClass = true;
+            }
+            if (!hasClass) cout << "No Classes";
+            cout << endl;
+        }
+        cout << "=======================================================\n";
+        if (!found) cout << "Warning: ID " << id << " not found in system!" << endl;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::readFromFile(const string& filename) {
+    try {
+        if (loadedFiles.find(filename) != loadedFiles.end()) {
+            return;
+        }
+        loadedFiles.insert(filename);
+        isLoadingFromFile = true;
+        string fullPath = BASE_PATH + filename;
+        if (!createFileIfNotExists(fullPath)) {
+            throw string("Failed to create file: ") + filename;
+        }
+        ifstream inFile(fullPath.c_str());
+        if (!inFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
+        char line[256];
+        bool firstLine = true;
+        while (inFile.getline(line, 256)) {
+            if (firstLine || strstr(line, "==========") || strstr(line, "------|") || line[0] == '\0') {
+                firstLine = false;
+                continue;
+            }
+            int id;
+            char name[50], sport[50], time[50];
+            char* token = strtok(line, "|");
+            if (!token) continue;
+            trimWhitespace(token);
+            id = atoi(token);
+            if (!isValidID(id)) continue;
+            token = strtok(NULL, "|");
+            if (!token) continue;
+            trimWhitespace(token);
+            strncpy(name, token, 49);
+            name[49] = '\0';
+            token = strtok(NULL, "|");
+            if (!token) continue;
+            trimWhitespace(token);
+            strncpy(sport, token, 49);
+            sport[49] = '\0';
+            token = strtok(NULL, "\n");
+            if (!token) continue;
+            trimWhitespace(token);
+            strncpy(time, token, 49);
+            time[49] = '\0';
+            if (!idExists(id)) insertStudent(id, name, "default123");
+            if (strcmp(sport, "None") != 0 && !sportExistsForId(id, sport, time)) {
+                insert(id, name, sport, time);
+            }
+        }
+        inFile.close();
+        isLoadingFromFile = false;
+        syncAthletesArray();
+        saveAllFiles();
+    } catch (const string& error) {
+        cout << "Error: " << error << endl;
+        isLoadingFromFile = false;
+    }
+}
+
+void HashTable::loadAllFiles() {
+    try {
+        loadedFiles.clear(); // Reset loaded files
+        readFromFile("input.txt");
+        readFromFile("sorted_information.txt");
+        loadUsersFromFile("user_data.txt");
+        readFromFile("statistics.txt");
+        readFromFile("backup.txt");
+        syncAthletesArray();
+        saveAllFiles();
+    } catch (const string& error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::saveToFile(const string& filename) {
+    try {
+        string fullPath = BASE_PATH + filename;
+        if (!createFileIfNotExists(fullPath)) {
+            throw string("Failed to create file: ") + filename;
+        }
+        ofstream outFile(fullPath.c_str());
+        if (!outFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
+        outFile << "========== SPORTS ALLOTMENT SYSTEM DATA ==========\n";
+        outFile << "ID    | Name             | Sport         | Time\n";
+        outFile << "------|------------------|---------------|------------------\n";
+        int ids[MAX_ENTRIES];
+        int idCount = 0;
+        for (int i = 0; i < TABLE_SIZE; i++) {
+            Node* current = table[i];
+            while (current != NULL) {
+                bool exists = false;
+                for (int j = 0; j < idCount; j++) {
+                    if (ids[j] == current->id) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists && idCount < MAX_ENTRIES) ids[idCount++] = current->id;
+                current = current->next;
+            }
+        }
+        for (int i = 0; i < idCount - 1; i++) {
+            for (int j = i + 1; j < idCount; j++) {
+                if (ids[i] > ids[j]) {
+                    int temp = ids[i];
+                    ids[i] = ids[j];
+                    ids[j] = temp;
+                }
+            }
+        }
+        for (int i = 0; i < idCount; i++) {
+            int id = ids[i];
+            bool hasNonNoneSport = false;
+            for (int j = 0; j < TABLE_SIZE; j++) {
+                Node* current = table[j];
+                while (current != NULL) {
+                    if (current->id == id && strcmp(current->sport, "None") != 0) {
+                        hasNonNoneSport = true;
+                        outFile << right << setw(5) << current->id << " | "
+                                << setw(16) << left << current->name << " | "
+                                << setw(13) << left << current->sport << " | "
+                                << current->time << endl;
+                    }
+                    current = current->next;
+                }
+            }
+            if (!hasNonNoneSport) {
+                for (int j = 0; j < TABLE_SIZE; j++) {
+                    Node* current = table[j];
+                    while (current != NULL) {
+                        if (current->id == id && strcmp(current->sport, "None") == 0) {
+                            outFile << right << setw(5) << current->id << " | "
+                                    << setw(16) << left << current->name << " | "
+                                    << setw(13) << left << current->sport << " | "
+                                    << current->time << endl;
+                            break;
+                        }
+                        current = current->next;
+                    }
+                }
+            }
+        }
+        outFile << "==================================================\n";
+        outFile.close();
+    } catch (const string& error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::saveUsersToFile(const string& filename) {
+    try {
+        string fullPath = BASE_PATH + filename;
+        if (!createFileIfNotExists(fullPath)) {
+            throw string("Failed to create file: ") + filename;
+        }
+        ofstream outFile(fullPath.c_str());
+        if (!outFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
+        outFile << "========== USER DATA ==========\n";
+        outFile << "ID    | Username | Password | Type\n";
+        outFile << "------|----------|----------|-------\n";
+        for (int i = 0; i < userCount; i++) {
+            outFile << left << setw(5) << users[i].id << " | "
+                    << setw(8) << users[i].username << " | "
+                    << setw(8) << users[i].password << " | "
+                    << users[i].type << endl;
+        }
+        outFile << "===============================\n";
+        outFile.close();
+    } catch (const string& error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::saveAllFiles() {
+    syncAthletesArray();
+    saveToFile("input.txt");
+    saveToFile("sorted_information.txt");
+    saveToFile("backup.txt");
+    generateStatistics(*this, "statistics.txt");
+    exportSummaryReport(*this, "summary_report.txt");
+    saveUsersToFile("user_data.txt");
+}
+
+void HashTable::removeSport(int id, const char* sport) {
+    try {
+        if (!isValidID(id)) throw "Invalid ID";
+        if (!isValidSport(sport)) throw "Invalid sport";
+        int index = hashFunction(id);
+        Node* current = table[index];
+        Node* prev = NULL;
+        while (current != NULL) {
+            if (current->id == id && strcmp(current->sport, sport) == 0) {
+                reduceCapacity(sport);
+                if (prev == NULL) table[index] = current->next;
+                else prev->next = current->next;
+                syncAthletesArray();
+                saveAllFiles();
+                cout << "Successfully removed: ID=" << id << ", Name=" << current->name
+                     << ", Sport=" << sport << endl;
+                delete current;
+                return;
+            }
+            prev = current;
+            current = current->next;
+        }
+        cout << "ID " << id << " with sport " << sport << " not found!" << endl;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::editStudentRecord(int id, const char* newName) {
+    try {
+        if (!isValidID(id)) throw "Invalid ID";
+        if (!idExists(id)) throw "ID not found";
+        if (strlen(newName) == 0) throw "Empty name";
+        int index = hashFunction(id);
+        Node* current = table[index];
+        while (current != NULL) {
+            if (current->id == id) {
+                strncpy(current->name, newName, 49);
+                current->name[49] = '\0';
+            }
+            current = current->next;
+        }
+        syncAthletesArray();
+        saveAllFiles();
+        cout << "Successfully updated name for ID=" << id << " to " << newName << endl;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::editStudentRecord(int oldId, int newId) {
+    try {
+        if (!isValidID(oldId)) throw "Invalid old ID";
+        if (!isValidID(newId)) throw "Invalid new ID";
+        if (!idExists(oldId)) throw "Old ID not found";
+        if (idExists(newId)) throw "New ID already exists";
+
+        int oldIndex = hashFunction(oldId);
+        int newIndex = hashFunction(newId);
+        Node* current = table[oldIndex];
+        Node* prev = NULL;
+        Node* newNodeHead = NULL;
+
+        while (current != NULL) {
+            if (current->id == oldId) {
+                Node* newNode = new Node;
+                newNode->id = newId;
+                strcpy(newNode->name, current->name);
+                strcpy(newNode->sport, current->sport);
+                strcpy(newNode->time, current->time);
+                newNode->next = newNodeHead;
+                newNodeHead = newNode;
+
+                Node* temp = current;
+                if (prev == NULL) table[oldIndex] = current->next;
+                else prev->next = current->next;
+                current = current->next;
+                delete temp;
+                continue;
+            }
+            prev = current;
+            current = current->next;
+        }
+
+        if (newNodeHead != NULL) {
+            newNodeHead->next = table[newIndex];
+            table[newIndex] = newNodeHead;
+        }
+
+        syncAthletesArray();
+        saveAllFiles();
+        cout << "Successfully updated ID from " << oldId << " to " << newId << endl;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::editUserRecord(int id, const char* newUsername, const char* newPassword) {
+    try {
+        int userIndex = findUserIndexById(id);
+        if (userIndex == -1) throw "User ID not found";
+        if (newUsername && strlen(newUsername) > 0) {
+            strncpy(users[userIndex].username, newUsername, 49);
+            users[userIndex].username[49] = '\0';
+        }
+        if (newPassword && strlen(newPassword) > 0) {
+            strncpy(users[userIndex].password, newPassword, 49);
+            users[userIndex].password[49] = '\0';
+        }
+        saveUsersToFile("user_data.txt");
+        cout << "Successfully updated user record for ID=" << id << endl;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::editUserRecord(int oldId, int newId) {
+    try {
+        if (!isValidID(oldId)) throw "Invalid old ID";
+        if (!isValidID(newId)) throw "Invalid new ID";
+        int userIndex = findUserIndexById(oldId);
+        if (userIndex == -1) throw "Old user ID not found";
+        if (idExistsUser(newId)) throw "New user ID already exists";
+        users[userIndex].id = newId;
+        saveUsersToFile("user_data.txt");
+        cout << "Successfully updated user ID from " << oldId << " to " << newId << endl;
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::editSportInformation() {
+    try {
+        cout << "\n--- Edit Sport Information ---\n";
+        displaySports();
+        
+        cout << "\nEnter sport number to edit (0 to cancel, 1-" << getSportCount() << "): ";
+        int sportIndex = getValidInput(0, getSportCount());
+        cin.ignore();
+        
+        if (sportIndex == 0) {
+            cout << "Edit cancelled.\n";
+            return;
+        }
+        
+        int arrayIndex = sportIndex - 1;
+        
+        cout << "\nCurrent sport information:\n";
+        cout << "Name: " << sports[arrayIndex].name << "\n";
+        cout << "Time: " << sports[arrayIndex].time << "\n";
+        cout << "Capacity: " << sports[arrayIndex].capacity << "\n";
+        cout << "Current participants: " << sports[arrayIndex].current_count << "\n";
+        
+        cout << "\nWhat would you like to edit?\n";
+        cout << "1. Sport Name\n";
+        cout << "2. Time Schedule\n";
+        cout << "3. Capacity\n";
+        cout << "0. Cancel\n";
+        cout << "Enter choice: ";
+        
+        int editChoice = getValidInput(0, 3);
+        cin.ignore();
+        
+        if (editChoice == 0) {
+            cout << "Edit cancelled.\n";
+            return;
+        }
+        
+        if (editChoice == 1) {
+            cout << "Enter new sport name: ";
+            char newName[50];
+            cin.getline(newName, 50);
+            trimWhitespace(newName);
+            
+            if (strlen(newName) > 0) {
+                strcpy(sports[arrayIndex].name, newName);
+                cout << "Sport name updated successfully!\n";
+            }
+        } else if (editChoice == 2) {
+            cout << "Enter new time schedule (e.g., Mon 10:00-12:00): ";
+            char newTime[50];
+            cin.getline(newTime, 50);
+            trimWhitespace(newTime);
+            
+            if (strlen(newTime) > 0) {
+                strcpy(sports[arrayIndex].time, newTime);
+                cout << "Time schedule updated successfully!\n";
+            }
+        } else if (editChoice == 3) {
+            cout << "Enter new capacity: ";
+            int newCapacity = getValidInput(1, 999);
+            cin.ignore();
+            
+            if (newCapacity >= sports[arrayIndex].current_count) {
+                sports[arrayIndex].capacity = newCapacity;
+                cout << "Capacity updated successfully!\n";
+            } else {
+                cout << "Error: New capacity cannot be less than current participants (" 
+                     << sports[arrayIndex].current_count << ")!\n";
+            }
+        }
+        
+        saveAllFiles();
+        
+    } catch (const char* error) {
+        cout << "Error: " << error << endl;
+    }
+}
+
+void HashTable::insertionSort(Athlete arr[], int left, int right) {
+    for (int i = left + 1; i <= right; i++) {
+        Athlete temp = arr[i];
+        int j = i - 1;
+        while (j >= left && arr[j].id > temp.id) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = temp;
+    }
+}
+
+void HashTable::merge(Athlete arr[], int left, int mid, int right) {
+    int len1 = mid - left + 1;
+    int len2 = right - mid;
+    Athlete* leftArr = new Athlete[len1];
+    Athlete* rightArr = new Athlete[len2];
+    for (int i = 0; i < len1; i++) leftArr[i] = arr[left + i];
+    for (int i = 0; i < len2; i++) rightArr[i] = arr[mid + 1 + i];
+    int i = 0, j = 0, k = left;
+    while (i < len1 && j < len2) {
+        if (leftArr[i].id <= rightArr[j].id) {
+            arr[k++] = leftArr[i++];
+        } else {
+            arr[k++] = rightArr[j++];
+        }
+    }
+    while (i < len1) arr[k++] = leftArr[i++];
+    while (j < len2) arr[k++] = rightArr[j++];
+    delete[] leftArr;
+    delete[] rightArr;
+}
+
+void HashTable::mergeSort(Athlete arr[], int left, int right) {
+    if (right - left <= 32) {
+        insertionSort(arr, left, right);
+        return;
+    }
+    int mid = left + (right - left) / 2;
+    mergeSort(arr, left, mid);
+    mergeSort(arr, mid + 1, right);
+    merge(arr, left, mid, right);
+}
+
+int HashTable::binarySearch(int targetId) {
+    if (athleteCount == 0) return -1;
+    int left = 0, right = athleteCount - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (athletes[mid].id == targetId) return mid;
+        if (athletes[mid].id < targetId) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}
+
+void HashTable::syncAthletesArray() {
+    athleteCount = 0;
+    for (int i = 0; i < SPORT_COUNT; i++) {
+        sports[i].current_count = 0; // Reset sport counts
+    }
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        Node* current = table[i];
+        while (current != NULL && athleteCount < MAX_ENTRIES) {
+            athletes[athleteCount].id = current->id;
+            strcpy(athletes[athleteCount].name, current->name);
+            strcpy(athletes[athleteCount].sport, current->sport);
+            strcpy(athletes[athleteCount].time, current->time);
+            if (strcmp(current->sport, "None") != 0) {
+                for (int j = 0; j < SPORT_COUNT; j++) {
+                    if (strcmp(current->sport, sports[j].name) == 0) {
+                        sports[j].current_count++;
+                        break;
+                    }
+                }
+                athleteCount++;
+            } else {
+                athleteCount++;
+            }
+            current = current->next;
+        }
+    }
+    if (athleteCount > 1) mergeSort(athletes, 0, athleteCount - 1);
+}
+
+HashTable::~HashTable() {
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        Node* current = table[i];
+        while (current != NULL) {
+            Node* temp = current;
+            current = current->next;
+            delete temp;
+        }
+        table[i] = NULL;
+    }
+}
+
 int main() {
     cout << "========================================\n";
     cout << "   SPORTS ALLOTMENT SYSTEM\n";
@@ -1358,7 +1574,6 @@ int main() {
     HashTable table;
     Guest guest;
     table.loadAllFiles();
-    cout << "Successfully loaded input.txt\n";
 
     while (true) {
         cout << "\n========================================\n";
@@ -1393,124 +1608,84 @@ int main() {
                         cout << "\n========================================\n";
                         cout << "    ADMIN - HASH TABLE OPERATIONS\n";
                         cout << "========================================\n";
-                        cout << "1. Add New Student\n";
-                        cout << "2. Manage Sports\n";
-                        cout << "3. Manage Sport Selection\n";
-                        cout << "4. Search Student by ID\n";
-                        cout << "5. Search Student by Name\n";
-                        cout << "6. Display All Data\n";
-                        cout << "7. Display Sport Information\n";
-                        cout << "8. Display Student Time Table\n";
-                        cout << "9. Save Data\n";
-                        cout << "10. Edit Record\n";
-                        cout << "11. Generate Summary Report\n";
-                        cout << "12. Generate Detailed Report\n";
+                        cout << "1. Add New Sport\n";
+                        cout << "2. Add New Student\n";
+                        cout << "3. Search Student by ID\n";
+                        cout << "4. Search Student by Name\n";
+                        cout << "5. Display All Data\n";
+                        cout << "6. Display Sport Information\n";
+                        cout << "7. Display Student Time Table\n";
+                        cout << "8. Save Data\n";
+                        cout << "9. Edit Student Information\n";
+                        cout << "10. Edit Sport Information\n";
+                        cout << "11. Delete Sport Registration\n";
+                        cout << "12. Delete Student Registration\n";
+                        cout << "13. Sort Records\n";
+                        cout << "14. Generate Summary Report\n";
                         cout << "0. Back to Main Menu\n";
                         cout << "========================================\n";
-                        cout << "Enter your choice (0-12): ";
+                        cout << "Enter your choice (0-14): ";
 
-                        int subChoice = getValidInput(0, 12);
+                        int subChoice = getValidInput(0, 14);
                         cin.ignore();
 
                         if (subChoice == 0) break;
 
                         if (subChoice == 1) {
-                            cout << "\n--- Add New Student ---\n";
-                            cout << "Enter Student ID: ";
-                            int id = getValidInput(1, 99999);
-                            cin.ignore();
-                            cout << "Enter Student Name: ";
-                            char name[50];
-                            cin.getline(name, 50);
-                            cout << "Enter Student Password: ";
-                            char password[50];
-                            cin.getline(password, 50);
-                            table.insertStudent(id, name, password);
-                        } else if (subChoice == 2) {
-                            cout << "\n--- Manage Sports ---\n";
-                            cout << "1. Add New Sport\n";
-                            cout << "2. Delete Sport\n";
-                            cout << "Enter action (1-2): ";
-                            int sportAction = getValidInput(1, 2);
-                            cin.ignore();
-                            if (sportAction == 1) {
+                            cout << "\n--- Add New Sport ---\n";
+                            if (table.getSportCount() >= SPORT_COUNT) {
+                                cout << "Error: Maximum sport limit reached!" << endl;
+                            } else {
                                 cout << "Enter Sport Name: ";
                                 char name[50];
                                 cin.getline(name, 50);
-                                table.trimWhitespace(name);
+                                trimWhitespace(name);
+                                if (strlen(name) == 0) {
+                                    cout << "Error: Empty sport name!" << endl;
+                                    continue;
+                                }
+                                for (int i = 0; i < table.getSportCount(); i++) {
+                                    char existingSport[50];
+                                    char existingTime[50];
+                                    table.getSportByIndex(i + 1, existingSport, existingTime);
+                                    if (strcmp(existingSport, name) == 0) {
+                                        cout << "Error: Sport '" << name << "' already exists!" << endl;
+                                        continue;
+                                    }
+                                }
                                 cout << "Enter Time (e.g., Mon 10:00-12:00): ";
                                 char time[50];
                                 cin.getline(time, 50);
-                                table.trimWhitespace(time);
+                                trimWhitespace(time);
+                                if (strlen(time) == 0) {
+                                    cout << "Error: Empty time!" << endl;
+                                    continue;
+                                }
                                 cout << "Enter Capacity: ";
-                                int capacity = getValidInput(1, 100);
+                                int capacity = getValidInput(1, 999);
                                 cin.ignore();
-                                table.addNewSport(name, time, capacity);
-                            } else {
-                                table.displaySports();
-                                cout << "\nEnter sport number to delete (1-" << table.getSportCount() << "): ";
-                                int sportIndex = getValidInput(1, table.getSportCount());
-                                cin.ignore();
-                                char sport[50], time[50];
-                                if (table.getSportByIndex(sportIndex, sport, time)) {
-                                    table.deleteSport(sport);
-                                }
+                                cout << "New sport addition not fully implemented in this version.\n";
                             }
+                        } else if (subChoice == 2) {
+                            table.addNewStudent();
                         } else if (subChoice == 3) {
-                            cout << "\n--- Manage Sport Selection ---\n";
-                            cout << "Enter Student ID: ";
-                            int id = getValidInput(1, 99999);
-                            cout << "\n1. Add Sport\n";
-                            cout << "2. Remove Sport\n";
-                            cout << "Enter action (1-2): ";
-                            int action = getValidInput(1, 2);
-                            cin.ignore();
-                            if (action == 1) {
-                                cout << "\n--- Available Sports ---\n";
-                                table.displaySports();
-                                cout << "\nEnter sport number (0 to exit, 1-" << table.getSportCount() << "): ";
-                                int sportIndex = getValidInput(0, table.getSportCount());
-                                cin.ignore();
-                                if (sportIndex == 0) {
-                                    cout << "Sport selection cancelled.\n";
-                                    continue;
-                                }
-                                char sport[50], time[50];
-                                if (table.getSportByIndex(sportIndex, sport, time)) {
-                                    table.insert(id, "", sport, time);
-                                }
-                            } else {
-                                cout << "\n--- Available Sports ---\n";
-                                table.displaySports();
-                                cout << "\nEnter sport number to remove (0 to exit, 1-" << table.getSportCount() << "): ";
-                                int sportIndex = getValidInput(0, table.getSportCount());
-                                cin.ignore();
-                                if (sportIndex == 0) {
-                                    cout << "Sport removal cancelled.\n";
-                                    continue;
-                                }
-                                char sport[50], time[50];
-                                if (table.getSportByIndex(sportIndex, sport, time)) {
-                                    table.removeSport(id, sport);
-                                }
-                            }
-                        } else if (subChoice == 4) {
-                            cout << "\n--- Search Student by ID\n";
+                            cout << "\n--- Search Student by ID ---\n";
                             cout << "Enter Student ID: ";
                             int id = getValidInput(1, 99999);
                             table.search(id);
-                        } else if (subChoice == 5) {
+                        } else if (subChoice == 4) {
                             cout << "\n--- Search Student by Name ---\n";
                             cout << "Enter Student Name: ";
                             char name[50];
                             cin.getline(name, 50);
                             table.search(name);
-                        } else if (subChoice == 6) {
+                        } else if (subChoice == 5) {
                             cout << "\n--- Display Options ---\n";
                             cout << "1. Display Hash Table Contents\n";
                             cout << "2. Display Sport Participants\n";
                             cout << "Enter choice (1-2): ";
                             int displayChoice = getValidInput(1, 2);
+                            cin.ignore();
                             if (displayChoice == 1) {
                                 table.display();
                             } else {
@@ -1523,14 +1698,14 @@ int main() {
                                     table.displaySportParticipants(sport);
                                 }
                             }
-                        } else if (subChoice == 7) {
+                        } else if (subChoice == 6) {
                             table.displaySports();
-                        } else if (subChoice == 8) {
+                        } else if (subChoice == 7) {
                             cout << "\n--- Student Time Table ---\n";
                             cout << "Enter Student ID: ";
                             int id = getValidInput(1, 99999);
                             table.displayTimeTable(id);
-                        } else if (subChoice == 9) {
+                        } else if (subChoice == 8) {
                             cout << "Save to (1) input.txt, (2) sorted_information.txt, (3) backup.txt? Enter 1-3: ";
                             int saveChoice = getValidInput(1, 3);
                             cin.ignore();
@@ -1539,7 +1714,7 @@ int main() {
                             else if (saveChoice == 2) filename = "sorted_information.txt";
                             else filename = "backup.txt";
                             table.saveToFile(filename);
-                        } else if (subChoice == 10) {
+                        } else if (subChoice == 9) {
                             cout << "\n--- Edit Record ---\n";
                             cout << "Enter Target User ID: ";
                             int targetId = getValidInput(1, 99999);
@@ -1568,12 +1743,17 @@ int main() {
                                 cin.getline(newPassword, 50);
                                 table.editUserRecord(targetId, NULL, newPassword);
                             }
+                        } else if (subChoice == 10) {
+                            table.editSportInformation();  
                         } else if (subChoice == 11) {
-                            exportSummaryReport(table, "summary_report.txt");
-                            table.displayFileContents("summary_report.txt");
+                            table.deleteSport();
                         } else if (subChoice == 12) {
-                            table.generateDetailedReport("detailed_report.txt");
-                            table.displayFileContents("detailed_report.txt");
+                            table.deleteStudentRegistration();
+                        } else if (subChoice == 13) {
+                            table.sortRecords();
+                        } else if (subChoice == 14) {
+                            exportSummaryReport(table, "summary_report.txt");
+                            cout << "Summary report generated successfully!" << endl;
                         }
                         waitForUser();
                     }
@@ -1737,16 +1917,15 @@ int main() {
                             table.displaySportParticipants(sport);
                         }
                     } else if (subChoice == 3) {
-                        cout << "Choose file: (1) input.txt, (2) sorted_information.txt, (3) summary_report.txt, (4) statistics.txt, (5) backup.txt, (6) detailed_report.txt: ";
-                        int fileChoice = getValidInput(1, 6);
+                        cout << "Choose file: (1) input.txt, (2) sorted_information.txt, (3) summary_report.txt, (4) statistics.txt, (5) backup.txt: ";
+                        int fileChoice = getValidInput(1, 5);
                         cin.ignore();
                         const char* filename;
                         if (fileChoice == 1) filename = "input.txt";
                         else if (fileChoice == 2) filename = "sorted_information.txt";
                         else if (fileChoice == 3) filename = "summary_report.txt";
                         else if (fileChoice == 4) filename = "statistics.txt";
-                        else if (fileChoice == 5) filename = "backup.txt";
-                        else filename = "detailed_report.txt";
+                        else filename = "backup.txt";
                         table.displayFileContents(filename);
                     }
                     waitForUser();
