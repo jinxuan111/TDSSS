@@ -1,0 +1,38 @@
+========== DETAILED SPORTS REPORT ==========
+Total Athletes: 8
+Total Sports: 9
+
+Sport-wise Participation:
+Sport         | Participants | Capacity | Utilization (%)
+--------------|--------------|----------|---------------
+Football      | 2            | 20       | 10.00%
+Basketball    | 1            | 15       | 6.67%
+Tennis        | 0            | 10       | 0.00%
+Swimming      | 0            | 12       | 0.00%
+Volleyball    | 0            | 15       | 0.00%
+Badminton     | 0            | 10       | 0.00%
+Athletics     | 0            | 20       | 0.00%
+Cycling       | 0            | 10       | 0.00%
+Running       | 1            | 25       | 4.00%
+
+Day-wise Schedule Distribution:
+
+Mon:
+Football (Mon 10:00-12:00): 2 participants
+Badminton (Mon 14:00-16:00): 0 participants
+Running (Mon 06:00-08:00): 1 participants
+
+Tue:
+Basketball (Tue 14:00-16:00): 1 participants
+Athletics (Tue 10:00-12:00): 0 participants
+
+Wed:
+Tennis (Wed 09:00-11:00): 0 participants
+Cycling (Wed 13:00-15:00): 0 participants
+
+Thu:
+Swimming (Thu 13:00-15:00): 0 participants
+
+Fri:
+Volleyball (Fri 15:00-17:00): 0 participants
+==========================================

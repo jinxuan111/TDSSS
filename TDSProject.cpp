@@ -16,7 +16,7 @@ int getValidInput(int min, int max);
 // Constants
 const int MAX_SIZE = 100;
 const int TABLE_SIZE = 17;
-const int SPORT_COUNT = 8;
+const int MAX_SPORTS = 20;
 const int MAX_ENTRIES = 100;
 const int MAX_USERS = 100;
 const string BASE_PATH = "C:\\Temp\\TDSSS\\";
@@ -48,7 +48,7 @@ struct UserInfo {
     int id;
     char username[50];
     char password[50];
-    char type[20]; // "Admin" or "Customer"
+    char type[20];
 };
 
 // Base class for user management
@@ -126,31 +126,34 @@ public:
 class HashTable {
 private:
     Node* table[TABLE_SIZE];
-    Sport sports[SPORT_COUNT];
+    Sport sports[MAX_SPORTS];
+    int sportCount;
     bool isLoadingFromFile;
     Athlete athletes[MAX_ENTRIES];
     int athleteCount;
     UserInfo users[MAX_USERS];
     int userCount;
-    static set<string> loadedFiles; // Track loaded files
+    static set<string> loadedFiles;
 
     int hashFunction(int key) {
         return key % TABLE_SIZE;
     }
 
     void initSports() {
-        strcpy(sports[0].name, "Football"); strcpy(sports[0].time, "Mon 10:00-12:00"); sports[0].capacity = 20; sports[0].current_count = 0;
-        strcpy(sports[1].name, "Basketball"); strcpy(sports[1].time, "Tue 14:00-16:00"); sports[1].capacity = 15; sports[1].current_count = 0;
+        sportCount = 9;
+        strcpy(sports[0].name, "Football"); strcpy(sports[0].time, "Mon 10:00-12:00"); sports[0].capacity = 20; sports[0].current_count = 2;
+        strcpy(sports[1].name, "Basketball"); strcpy(sports[1].time, "Tue 14:00-16:00"); sports[1].capacity = 15; sports[1].current_count = 1;
         strcpy(sports[2].name, "Tennis"); strcpy(sports[2].time, "Wed 09:00-11:00"); sports[2].capacity = 10; sports[2].current_count = 0;
         strcpy(sports[3].name, "Swimming"); strcpy(sports[3].time, "Thu 13:00-15:00"); sports[3].capacity = 12; sports[3].current_count = 0;
         strcpy(sports[4].name, "Volleyball"); strcpy(sports[4].time, "Fri 15:00-17:00"); sports[4].capacity = 15; sports[4].current_count = 0;
         strcpy(sports[5].name, "Badminton"); strcpy(sports[5].time, "Mon 14:00-16:00"); sports[5].capacity = 10; sports[5].current_count = 0;
         strcpy(sports[6].name, "Athletics"); strcpy(sports[6].time, "Tue 10:00-12:00"); sports[6].capacity = 20; sports[6].current_count = 0;
         strcpy(sports[7].name, "Cycling"); strcpy(sports[7].time, "Wed 13:00-15:00"); sports[7].capacity = 10; sports[7].current_count = 0;
+        strcpy(sports[8].name, "Running"); strcpy(sports[8].time, "Mon 06:00-08:00"); sports[8].capacity = 25; sports[8].current_count = 1;
     }
 
     bool isValidSport(const char* sport) {
-        for (int i = 0; i < SPORT_COUNT; i++) {
+        for (int i = 0; i < sportCount; i++) {
             if (strcmp(sport, sports[i].name) == 0) return true;
         }
         return false;
@@ -173,7 +176,7 @@ private:
     }
 
     bool checkCapacity(const char* sport) {
-        for (int i = 0; i < SPORT_COUNT; i++) {
+        for (int i = 0; i < sportCount; i++) {
             if (strcmp(sport, sports[i].name) == 0) {
                 if (sports[i].current_count < sports[i].capacity) {
                     sports[i].current_count++;
@@ -186,7 +189,7 @@ private:
     }
 
     void reduceCapacity(const char* sport) {
-        for (int i = 0; i < SPORT_COUNT; i++) {
+        for (int i = 0; i < sportCount; i++) {
             if (strcmp(sport, sports[i].name) == 0) {
                 if (sports[i].current_count > 0) sports[i].current_count--;
                 break;
@@ -229,14 +232,29 @@ private:
         return id > 0;
     }
 
-    void trimWhitespace(char* str) {
-        char* start = str;
-        char* end;
-        while (isspace(*start)) start++;
-        end = start + strlen(start) - 1;
-        while (end >= start && isspace(*end)) end--;
-        *(end + 1) = '\0';
-        if (start != str) memmove(str, start, strlen(start) + 1);
+    bool isValidTimeFormat(const char* time, char* formattedTime = NULL) {
+        if (strlen(time) < 12 || strlen(time) > 14) return false;
+        const char* days[5] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
+        bool validDay = false;
+        for (int i = 0; i < 5; i++) {
+            if (strncmp(time, days[i], 3) == 0) {
+                validDay = true;
+                break;
+            }
+        }
+        if (!validDay) return false;
+        int startHour, startMin, endHour, endMin;
+        char day[4], separator1, separator2;
+        if (sscanf(time, "%3s %d:%d%c%d:%d", day, &startHour, &startMin, &separator1, &endHour, &endMin) != 6) {
+            return false;
+        }
+        if (separator1 != '-' || startHour < 0 || startHour > 23 || startMin != 0 || endMin != 0 || endHour < 0 || endHour > 23 || endHour <= startHour) {
+            return false;
+        }
+        if (formattedTime) {
+            sprintf(formattedTime, "%s %02d:%02d-%02d:%02d", day, startHour, startMin, endHour, endMin);
+        }
+        return true;
     }
 
     void insertionSort(Athlete arr[], int left, int right) {
@@ -290,15 +308,15 @@ private:
             int mid = left + (right - left) / 2;
             if (athletes[mid].id == targetId) return mid;
             if (athletes[mid].id < targetId) left = mid + 1;
-            else right = mid - 1;
+            else right--;
         }
         return -1;
     }
 
     void syncAthletesArray() {
         athleteCount = 0;
-        for (int i = 0; i < SPORT_COUNT; i++) {
-            sports[i].current_count = 0; // Reset sport counts
+        for (int i = 0; i < sportCount; i++) {
+            sports[i].current_count = 0;
         }
         for (int i = 0; i < TABLE_SIZE; i++) {
             Node* current = table[i];
@@ -308,7 +326,7 @@ private:
                 strcpy(athletes[athleteCount].sport, current->sport);
                 strcpy(athletes[athleteCount].time, current->time);
                 if (strcmp(current->sport, "None") != 0) {
-                    for (int j = 0; j < SPORT_COUNT; j++) {
+                    for (int j = 0; j < sportCount; j++) {
                         if (strcmp(current->sport, sports[j].name) == 0) {
                             sports[j].current_count++;
                             break;
@@ -351,9 +369,7 @@ private:
             return false;
         }
         ofstream outFile(filename.c_str(), ios::app);
-        if (!outFile) {
-            return false;
-        }
+        if (!outFile) return false;
         outFile.close();
         return true;
     }
@@ -414,20 +430,90 @@ public:
         strcpy(users[1].username, "customer");
         strcpy(users[1].password, "cust123");
         strcpy(users[1].type, "Customer");
-        userCount = 2;
+        users[2].id = 123;
+        strcpy(users[2].username, "abc123");
+        strcpy(users[2].password, "pass123");
+        strcpy(users[2].type, "Customer");
+        users[3].id = 323;
+        strcpy(users[3].username, "abc");
+        strcpy(users[3].password, "pass323");
+        strcpy(users[3].type, "Customer");
+        userCount = 4;
         string fullPath = BASE_PATH + "user_data.txt";
         if (createFileIfNotExists(fullPath)) {
             saveUsersToFile("user_data.txt");
         }
+        // Initialize students and sports
+        insertStudent(123, "abc123", "pass123");
+        insert(123, "abc123", "Basketball", "Tue 14:00-16:00");
+        insertStudent(323, "abc", "pass323");
+        insert(323, "abc", "Football", "Mon 10:00-12:00");
+        insertStudent(456, "runner", "pass456");
+        insert(456, "runner", "Running", "Mon 06:00-08:00");
+        insertStudent(789, "player", "pass789");
+        insert(789, "player", "Football", "Mon 10:00-12:00");
     }
 
-    int getSportCount() const { return SPORT_COUNT; }
+    int getSportCount() const { return sportCount; }
 
     bool getSportByIndex(int index, char* sport, char* time) {
-        if (index < 1 || index > SPORT_COUNT) return false;
+        if (index < 1 || index > sportCount) return false;
         strcpy(sport, sports[index - 1].name);
         strcpy(time, sports[index - 1].time);
         return true;
+    }
+
+    void trimWhitespace(char* str) {
+        char* start = str;
+        char* end;
+        while (isspace(*start)) start++;
+        end = start + strlen(start) - 1;
+        while (end >= start && isspace(*end)) end--;
+        *(end + 1) = '\0';
+        if (start != str) memmove(str, start, strlen(start) + 1);
+    }
+
+    bool addNewSport(const char* name, const char* time, int capacity) {
+        try {
+            if (sportCount >= MAX_SPORTS) throw "Maximum sport limit reached";
+            if (strlen(name) == 0) throw "Empty sport name";
+            if (!isValidTimeFormat(time)) throw "Invalid time format";
+            if (capacity <= 0) throw "Invalid capacity";
+            if (isValidSport(name)) throw "Sport already exists";
+            strcpy(sports[sportCount].name, name);
+            strcpy(sports[sportCount].time, time);
+            sports[sportCount].capacity = capacity;
+            sports[sportCount].current_count = 0;
+            sportCount++;
+            saveAllFiles();
+            cout << "Successfully added sport: " << name << endl;
+            return true;
+        } catch (const char* error) {
+            cout << "Error: " << error << endl;
+            return false;
+        }
+    }
+
+    bool deleteSport(const char* name) {
+        try {
+            if (!isValidSport(name)) throw "Sport does not exist";
+            for (int i = 0; i < sportCount; i++) {
+                if (strcmp(sports[i].name, name) == 0) {
+                    if (sports[i].current_count > 0) throw "Cannot delete sport with participants";
+                    for (int j = i; j < sportCount - 1; j++) {
+                        sports[j] = sports[j + 1];
+                    }
+                    sportCount--;
+                    saveAllFiles();
+                    cout << "Successfully deleted sport: " << name << endl;
+                    return true;
+                }
+            }
+            return false;
+        } catch (const char* error) {
+            cout << "Error: " << error << endl;
+            return false;
+        }
     }
 
     void registerUser() {
@@ -444,6 +530,7 @@ public:
             cin.getline(username, 50);
             trimWhitespace(username);
             if (strlen(username) == 0) throw "Empty username";
+            if (usernameExists(username)) throw "Username already exists";
             cout << "Enter password: ";
             cin.getline(password, 50);
             trimWhitespace(password);
@@ -527,8 +614,7 @@ public:
                 strcmp(users[i].type, expectedType) == 0) {
                 if (strcmp(expectedType, "Admin") == 0) {
                     return new Admin(id, users[i].username, password);
-                }
-                else if (strcmp(expectedType, "Customer") == 0) {
+                } else if (strcmp(expectedType, "Customer") == 0) {
                     return new Customer(id, users[i].username, password);
                 }
             }
@@ -719,11 +805,11 @@ public:
         cout << "\n============= AVAILABLE SPORTS =============\n";
         cout << "No. | Sport         | Time              | Capacity\n";
         cout << "----|---------------|-------------------|---------|\n";
-        for (int i = 0; i < SPORT_COUNT; i++) {
+        for (int i = 0; i < sportCount; i++) {
             cout << right << setw(3) << (i + 1) << " | "
-                 << setw(13) << left << sports[i].name << " | "
-                 << setw(17) << sports[i].time << " | "
-                 << sports[i].current_count << "/" << sports[i].capacity << endl;
+                 << setw(14) << left << sports[i].name << " | "
+                 << setw(18) << sports[i].time << " | "
+                 << right << sports[i].current_count << "/" << sports[i].capacity << endl;
         }
         cout << "==========================================\n";
     }
@@ -748,7 +834,7 @@ public:
     void displaySportParticipants(const char* sport) {
         try {
             if (!isValidSport(sport)) throw "Invalid sport";
-            cout << "\n======== PARTICIPANTS IN " << sport << " ========\n"; // FIXED: Corrected string concatenation
+            cout << "\n======== PARTICIPANTS IN " << sport << " ========\n";
             cout << "ID    | Name            | Time\n";
             cout << "------|-----------------|------------------\n";
             bool found = false;
@@ -817,7 +903,7 @@ public:
                 int entryCount = 0;
                 current = table[index];
                 while (current != NULL) {
-                    if (current->id == id && strstr(current->time, days[i]) != NULL) {
+                    if (current->id == id && strstr(current->time, days[i]) != NULL && strcmp(current->sport, "None") != 0) {
                         strcpy(entries[entryCount].sport, current->sport);
                         strcpy(entries[entryCount].time, current->time);
                         entryCount++;
@@ -833,12 +919,12 @@ public:
                         }
                     }
                 }
-                for (int j = 0; j < entryCount; j++) {
+                for (int p = 0; p < entryCount; p++) {
                     if (hasClass) cout << ", ";
-                    cout << entries[j].sport << " (" << entries[j].time + 4 << ")";
+                    cout << entries[p].sport << " (" << entries[p].time + 4 << ")";
                     hasClass = true;
                 }
-                if (!hasClass) cout << "No Classes";
+                if (!hasClass) cout << "No sports scheduled";
                 cout << endl;
             }
             cout << "=======================================================\n";
@@ -867,7 +953,7 @@ public:
                 if (firstLine || strstr(line, "==========") || strstr(line, "------|") || line[0] == '\0') {
                     firstLine = false;
                     continue;
-                }
+                    }
                 int id;
                 char name[50], sport[50], time[50];
                 char* token = strtok(line, "|");
@@ -889,7 +975,7 @@ public:
                 if (!token) continue;
                 trimWhitespace(token);
                 strncpy(time, token, 49);
-                time[50] = '\0';
+                time[49] = '\0';
                 if (!idExists(id)) insertStudent(id, name, "default123");
                 if (strcmp(sport, "None") != 0 && !sportExistsForId(id, sport, time)) {
                     insert(id, name, sport, time);
@@ -929,8 +1015,8 @@ public:
             ofstream outFile(fullPath.c_str());
             if (!outFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
             outFile << "========== SPORTS ALLOTMENT SYSTEM DATA ==========\n";
-            outFile << "ID    | Name             | Sport         | Time\n";
-            outFile << "------|------------------|---------------|------------------\n";
+            outFile << "ID    | Name            | Sport         | Time\n";
+            outFile << "------|-----------------|---------------|-----------------\n";
             int ids[MAX_ENTRIES];
             int idCount = 0;
             for (int i = 0; i < TABLE_SIZE; i++) {
@@ -965,7 +1051,7 @@ public:
                         if (current->id == id && strcmp(current->sport, "None") != 0) {
                             hasNonNoneSport = true;
                             outFile << right << setw(5) << current->id << " | "
-                                    << setw(16) << left << current->name << " | "
+                                    << setw(15) << left << current->name << " | "
                                     << setw(13) << left << current->sport << " | "
                                     << current->time << endl;
                         }
@@ -978,7 +1064,7 @@ public:
                         while (current != NULL) {
                             if (current->id == id && strcmp(current->sport, "None") == 0) {
                                 outFile << right << setw(5) << current->id << " | "
-                                        << setw(16) << left << current->name << " | "
+                                        << setw(15) << left << current->name << " | "
                                         << setw(13) << left << current->sport << " | "
                                         << current->time << endl;
                                 break;
@@ -1107,6 +1193,7 @@ public:
             int userIndex = findUserIndexById(id);
             if (userIndex == -1) throw "User ID not found";
             if (newUsername && strlen(newUsername) > 0) {
+                if (usernameExists(newUsername)) throw "Username already exists";
                 strncpy(users[userIndex].username, newUsername, 49);
                 users[userIndex].username[49] = '\0';
             }
@@ -1132,6 +1219,46 @@ public:
             saveUsersToFile("user_data.txt");
             cout << "Successfully updated user ID from " << oldId << " to " << newId << endl;
         } catch (const char* error) {
+            cout << "Error: " << error << endl;
+        }
+    }
+
+    void generateDetailedReport(const string& filename) {
+        try {
+            string fullPath = BASE_PATH + filename;
+            if (!createFileIfNotExists(fullPath)) {
+                throw string("Failed to create file: ") + filename;
+            }
+            ofstream outFile(fullPath.c_str());
+            if (!outFile) throw string("Unable to open file: ") + filename + ": " + strerror(errno);
+            outFile << "========== DETAILED SPORTS REPORT ==========\n";
+            outFile << "Total Athletes: " << athleteCount << "\n";
+            outFile << "Total Sports: " << sportCount << "\n\n";
+            outFile << "Sport-wise Participation:\n";
+            outFile << "Sport         | Participants | Capacity | Utilization (%)\n";
+            outFile << "--------------|--------------|----------|---------------\n";
+            for (int i = 0; i < sportCount; i++) {
+                float utilization = (sports[i].current_count * 100.0) / sports[i].capacity;
+                outFile << left << setw(13) << sports[i].name << " | "
+                        << setw(12) << sports[i].current_count << " | "
+                        << setw(8) << sports[i].capacity << " | "
+                        << fixed << setprecision(2) << utilization << "%\n";
+            }
+            outFile << "\nDay-wise Schedule Distribution:\n";
+            const char* days[5] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
+            for (int i = 0; i < 5; i++) {
+                outFile << "\n" << days[i] << ":\n";
+                for (int j = 0; j < sportCount; j++) {
+                    if (strstr(sports[j].time, days[i]) != NULL) {
+                        outFile << sports[j].name << " (" << sports[j].time << "): "
+                                << sports[j].current_count << " participants\n";
+                    }
+                }
+            }
+            outFile << "==========================================\n";
+            outFile.close();
+            cout << "Detailed report generated: " << filename << endl;
+        } catch (const string& error) {
             cout << "Error: " << error << endl;
         }
     }
@@ -1162,7 +1289,7 @@ void exportSummaryReport(HashTable& ht, const string& filename) {
         outFile << "========== SPORTS PARTICIPATION SUMMARY ==========\n";
         outFile << "Sport         | Participants | Capacity\n";
         outFile << "--------------|--------------|---------|\n";
-        for (int i = 0; i < SPORT_COUNT; i++) {
+        for (int i = 0; i < ht.sportCount; i++) {
             outFile << left << setw(13) << ht.sports[i].name << " | "
                     << setw(12) << ht.sports[i].current_count << " | "
                     << ht.sports[i].capacity << endl;
@@ -1189,7 +1316,7 @@ void generateStatistics(HashTable& ht, const string& filename) {
         outFile << "========== SPORTS STATISTICS ==========\n";
         outFile << "Total Athletes: " << ht.athleteCount << "\n";
         outFile << "Sport Distribution:\n";
-        for (int i = 0; i < SPORT_COUNT; i++) {
+        for (int i = 0; i < ht.sportCount; i++) {
             outFile << ht.sports[i].name << ": " << ht.sports[i].current_count << " participants\n";
         }
         outFile << "=======================================\n";
@@ -1231,6 +1358,7 @@ int main() {
     HashTable table;
     Guest guest;
     table.loadAllFiles();
+    cout << "Successfully loaded input.txt\n";
 
     while (true) {
         cout << "\n========================================\n";
@@ -1264,22 +1392,24 @@ int main() {
                     while (true) {
                         cout << "\n========================================\n";
                         cout << "    ADMIN - HASH TABLE OPERATIONS\n";
-                        cout << "=================================\n";
+                        cout << "========================================\n";
                         cout << "1. Add New Student\n";
-                        cout << "2. Manage Sport Selection\n";
-                        cout << "3. Search Student by ID\n";
-                        cout << "4. Search Student by Name\n";
-                        cout << "5. Display All Data\n";
-                        cout << "6. Display Sport Information\n";
-                        cout << "7. Display Student Time Table\n";
-                        cout << "8. Save Data\n";
-                        cout << "9. Edit Record\n";
-                        cout << "10. Generate Summary Report\n";
+                        cout << "2. Manage Sports\n";
+                        cout << "3. Manage Sport Selection\n";
+                        cout << "4. Search Student by ID\n";
+                        cout << "5. Search Student by Name\n";
+                        cout << "6. Display All Data\n";
+                        cout << "7. Display Sport Information\n";
+                        cout << "8. Display Student Time Table\n";
+                        cout << "9. Save Data\n";
+                        cout << "10. Edit Record\n";
+                        cout << "11. Generate Summary Report\n";
+                        cout << "12. Generate Detailed Report\n";
                         cout << "0. Back to Main Menu\n";
                         cout << "========================================\n";
-                        cout << "Enter your choice (0-10): ";
+                        cout << "Enter your choice (0-12): ";
 
-                        int subChoice = getValidInput(0, 10);
+                        int subChoice = getValidInput(0, 12);
                         cin.ignore();
 
                         if (subChoice == 0) break;
@@ -1297,11 +1427,41 @@ int main() {
                             cin.getline(password, 50);
                             table.insertStudent(id, name, password);
                         } else if (subChoice == 2) {
+                            cout << "\n--- Manage Sports ---\n";
+                            cout << "1. Add New Sport\n";
+                            cout << "2. Delete Sport\n";
+                            cout << "Enter action (1-2): ";
+                            int sportAction = getValidInput(1, 2);
+                            cin.ignore();
+                            if (sportAction == 1) {
+                                cout << "Enter Sport Name: ";
+                                char name[50];
+                                cin.getline(name, 50);
+                                table.trimWhitespace(name);
+                                cout << "Enter Time (e.g., Mon 10:00-12:00): ";
+                                char time[50];
+                                cin.getline(time, 50);
+                                table.trimWhitespace(time);
+                                cout << "Enter Capacity: ";
+                                int capacity = getValidInput(1, 100);
+                                cin.ignore();
+                                table.addNewSport(name, time, capacity);
+                            } else {
+                                table.displaySports();
+                                cout << "\nEnter sport number to delete (1-" << table.getSportCount() << "): ";
+                                int sportIndex = getValidInput(1, table.getSportCount());
+                                cin.ignore();
+                                char sport[50], time[50];
+                                if (table.getSportByIndex(sportIndex, sport, time)) {
+                                    table.deleteSport(sport);
+                                }
+                            }
+                        } else if (subChoice == 3) {
                             cout << "\n--- Manage Sport Selection ---\n";
                             cout << "Enter Student ID: ";
                             int id = getValidInput(1, 99999);
                             cout << "\n1. Add Sport\n";
-                            cout << "2. Remove Sport\n"; // FIXED: Added proper cout statement
+                            cout << "2. Remove Sport\n";
                             cout << "Enter action (1-2): ";
                             int action = getValidInput(1, 2);
                             cin.ignore();
@@ -1334,18 +1494,18 @@ int main() {
                                     table.removeSport(id, sport);
                                 }
                             }
-                        } else if (subChoice == 3) {
+                        } else if (subChoice == 4) {
                             cout << "\n--- Search Student by ID\n";
                             cout << "Enter Student ID: ";
                             int id = getValidInput(1, 99999);
                             table.search(id);
-                        } else if (subChoice == 4) {
+                        } else if (subChoice == 5) {
                             cout << "\n--- Search Student by Name ---\n";
                             cout << "Enter Student Name: ";
                             char name[50];
                             cin.getline(name, 50);
                             table.search(name);
-                        } else if (subChoice == 5) {
+                        } else if (subChoice == 6) {
                             cout << "\n--- Display Options ---\n";
                             cout << "1. Display Hash Table Contents\n";
                             cout << "2. Display Sport Participants\n";
@@ -1363,14 +1523,14 @@ int main() {
                                     table.displaySportParticipants(sport);
                                 }
                             }
-                        } else if (subChoice == 6) {
-                            table.displaySports();
                         } else if (subChoice == 7) {
+                            table.displaySports();
+                        } else if (subChoice == 8) {
                             cout << "\n--- Student Time Table ---\n";
                             cout << "Enter Student ID: ";
                             int id = getValidInput(1, 99999);
                             table.displayTimeTable(id);
-                        } else if (subChoice == 8) {
+                        } else if (subChoice == 9) {
                             cout << "Save to (1) input.txt, (2) sorted_information.txt, (3) backup.txt? Enter 1-3: ";
                             int saveChoice = getValidInput(1, 3);
                             cin.ignore();
@@ -1379,7 +1539,7 @@ int main() {
                             else if (saveChoice == 2) filename = "sorted_information.txt";
                             else filename = "backup.txt";
                             table.saveToFile(filename);
-                        } else if (subChoice == 9) {
+                        } else if (subChoice == 10) {
                             cout << "\n--- Edit Record ---\n";
                             cout << "Enter Target User ID: ";
                             int targetId = getValidInput(1, 99999);
@@ -1408,8 +1568,12 @@ int main() {
                                 cin.getline(newPassword, 50);
                                 table.editUserRecord(targetId, NULL, newPassword);
                             }
-                        } else if (subChoice == 10) {
+                        } else if (subChoice == 11) {
                             exportSummaryReport(table, "summary_report.txt");
+                            table.displayFileContents("summary_report.txt");
+                        } else if (subChoice == 12) {
+                            table.generateDetailedReport("detailed_report.txt");
+                            table.displayFileContents("detailed_report.txt");
                         }
                         waitForUser();
                     }
@@ -1573,15 +1737,16 @@ int main() {
                             table.displaySportParticipants(sport);
                         }
                     } else if (subChoice == 3) {
-                        cout << "Choose file: (1) input.txt, (2) sorted_information.txt, (3) summary_report.txt, (4) statistics.txt, (5) backup.txt: ";
-                        int fileChoice = getValidInput(1, 5);
+                        cout << "Choose file: (1) input.txt, (2) sorted_information.txt, (3) summary_report.txt, (4) statistics.txt, (5) backup.txt, (6) detailed_report.txt: ";
+                        int fileChoice = getValidInput(1, 6);
                         cin.ignore();
                         const char* filename;
                         if (fileChoice == 1) filename = "input.txt";
                         else if (fileChoice == 2) filename = "sorted_information.txt";
                         else if (fileChoice == 3) filename = "summary_report.txt";
                         else if (fileChoice == 4) filename = "statistics.txt";
-                        else filename = "backup.txt";
+                        else if (fileChoice == 5) filename = "backup.txt";
+                        else filename = "detailed_report.txt";
                         table.displayFileContents(filename);
                     }
                     waitForUser();
